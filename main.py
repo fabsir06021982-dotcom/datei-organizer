@@ -3,12 +3,6 @@ import shutil
 
 ordner = Path("testdateien")
 
-
-if not ordner.is_dir():
-    print("Ordner testdateien nicht vorhanden!")
-    raise SystemExit
-
-
 kategorien = {
     ".txt": "texte",
     ".png": "bilder",
@@ -17,22 +11,24 @@ kategorien = {
 }
 
 
-
-
-
-def bestimme_kategorie(datei, kategorien):
+def bestimme_kategorie(datei: Path, kategorien: dict[str, str]) -> str:
     kategorie = kategorien.get(datei.suffix)
     if kategorie is None:
         return "sonstiges"
     return kategorie
 
 def organisiere_dateien(ordner: Path, kategorien: dict[str, str]) -> None:
+    if not ordner.is_dir():
+        print("Ordner testdateien nicht vorhanden!")
+        raise SystemExit
+  
+    # compute absolute path
+    absoluter_pfad = ordner.resolve() 
+    
     for datei in ordner.iterdir():
         if datei.is_dir():
             continue
-
-        # compute absolute path
-        absoluter_pfad = ordner.resolve()    
+   
         fertiger_pfad = absoluter_pfad / bestimme_kategorie(datei, kategorien)
         # create path, if not exits
         fertiger_pfad.mkdir(exist_ok=True)
