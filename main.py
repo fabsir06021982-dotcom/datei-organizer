@@ -16,7 +16,9 @@ kategorien = {
     ".pdf": "dokumente"
 }
 
-absoluter_pfad = ordner.resolve()
+
+
+
 
 def bestimme_kategorie(datei, kategorien):
     kategorie = kategorien.get(datei.suffix)
@@ -24,21 +26,29 @@ def bestimme_kategorie(datei, kategorien):
         return "sonstiges"
     return kategorie
 
-for datei in ordner.iterdir():
-    if datei.is_dir():
-        continue
-    
-    fertiger_pfad = absoluter_pfad / bestimme_kategorie(datei, kategorien)
+def organisiere_dateien(ordner: Path, kategorien: dict[str, str]) -> None:
+    for datei in ordner.iterdir():
+        if datei.is_dir():
+            continue
 
-    fertiger_pfad.mkdir(exist_ok=True)
-    ziel_datei = fertiger_pfad / datei.name
+        # compute absolute path
+        absoluter_pfad = ordner.resolve()    
+        fertiger_pfad = absoluter_pfad / bestimme_kategorie(datei, kategorien)
+        # create path, if not exits
+        fertiger_pfad.mkdir(exist_ok=True)
+        # create file path
+        ziel_datei = fertiger_pfad / datei.name
+        # check if file path exists
+        if ziel_datei.exists():
+            print(f"Datei existiert bereits: {ziel_datei}")
+            continue
+        # create source file path
+        quelldatei = absoluter_pfad / datei.name
+        # move source file path to file path
+        shutil.move(quelldatei, fertiger_pfad)
 
-    if ziel_datei.exists():
-        print(f"Datei existiert bereits: {ziel_datei}")
-        continue
+organisiere_dateien(ordner, kategorien)
 
-    quelldatei = absoluter_pfad / datei.name
-    shutil.move(quelldatei, fertiger_pfad)
 
 
 
