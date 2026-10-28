@@ -19,7 +19,7 @@ def bestimme_kategorie(datei: Path, kategorien: dict[str, str]) -> str:
 
 def organisiere_dateien(ordner: Path, kategorien: dict[str, str]) -> None:
     if not ordner.is_dir():
-        print("Ordner testdateien nicht vorhanden!")
+        print(f"Ordner {ordner} nicht vorhanden!")
         raise SystemExit
   
     # compute absolute path
@@ -30,8 +30,16 @@ def organisiere_dateien(ordner: Path, kategorien: dict[str, str]) -> None:
             continue
    
         fertiger_pfad = absoluter_pfad / bestimme_kategorie(datei, kategorien)
-        # create path, if not exits
-        fertiger_pfad.mkdir(exist_ok=True)
+        
+        try:
+            # create path, if not exits
+            fertiger_pfad.mkdir(exist_ok=True)
+            
+        except OSError as fehler:
+            print(f"Ordner konnte nicht erstellt werden: {fehler}")
+            continue
+
+
         # create file path
         ziel_datei = fertiger_pfad / datei.name
         # check if file path exists
@@ -40,10 +48,16 @@ def organisiere_dateien(ordner: Path, kategorien: dict[str, str]) -> None:
             continue
         # create source file path
         quelldatei = absoluter_pfad / datei.name
-        # move source file path to file path
-        shutil.move(quelldatei, fertiger_pfad)
 
-organisiere_dateien(ordner, kategorien)
+        try:
+            # move source file path to file path
+            shutil.move(quelldatei, fertiger_pfad)
+        except OSError as fehler:
+            print(f"Die Datei {quelldatei} konnte nicht nach {fertiger_pfad} verschoben werden. {fehler}")
+
+
+if __name__ == "__main__":
+    organisiere_dateien(ordner, kategorien)
 
 
 
