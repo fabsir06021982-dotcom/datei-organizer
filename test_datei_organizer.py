@@ -50,6 +50,22 @@ def test_ordner_existiert_nicht(tmp_path):
     with pytest.raises(SystemExit):
         organisiere_dateien(ordner, kategorien)
 
+def test_unterordner_ueberspringen(tmp_path):
+    ordner = tmp_path / "testdateien"
+    ordner.mkdir()
+    unterordner = ordner / "unterordner"
+    unterordner.mkdir()
+    file_path = unterordner / "test.txt"
+    file_path.write_text("testdatei", encoding="utf-8")
+
+    organisiere_dateien(ordner, kategorien)
+    ziel_datei = ordner / "texte" / "test.txt"
+    assert not ziel_datei.exists()
+    assert unterordner.exists()
+    assert file_path.read_text(encoding="utf-8") == "testdatei"
+
+
+
 
 
     
