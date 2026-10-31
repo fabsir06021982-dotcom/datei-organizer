@@ -1,14 +1,19 @@
 ﻿from pathlib import Path
 import shutil
+import json
 
-ordner = Path("testdateien")
+def lade_konfiguration(dateipfad: Path):
+    try:
+        with open(dateipfad, "r", encoding="utf-8") as file:
+            d = json.load(file)
+            return d
+    except FileNotFoundError:
+        print("Config Datei nicht gefunden")
+        raise SystemExit
+    except json.JSONDecodeError:
+        print("JSON enthält ungültige Syntax")
+        raise SystemExit
 
-kategorien = {
-    ".txt": "texte",
-    ".png": "bilder",
-    ".jpg": "bilder",
-    ".pdf": "dokumente"
-}
 
 
 def bestimme_kategorie(datei: Path, kategorien: dict[str, str]) -> str:
@@ -57,6 +62,10 @@ def organisiere_dateien(ordner: Path, kategorien: dict[str, str]) -> None:
 
 
 if __name__ == "__main__":
+    jsonconfig = Path("config.json")   
+    konfiguration = lade_konfiguration(jsonconfig)
+    kategorien = konfiguration["kategorien"]
+    ordner = Path(konfiguration["ordner"])
     organisiere_dateien(ordner, kategorien)
 
 

@@ -1,0 +1,9 @@
+{
+    "ordner": "testdateien",
+    "kategorien": {
+        ".txt": "texte",
+        ".png": "bilder",
+        ".jpg": "bilder",
+        ".pdf": "dokumente"
+    }
+}

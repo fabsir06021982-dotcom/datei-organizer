@@ -1,9 +1,14 @@
 import pytest
 from unittest.mock import patch
 from pathlib import Path
-from main import organisiere_dateien, bestimme_kategorie, kategorien
+from main import organisiere_dateien, bestimme_kategorie
 
-
+kategorien = {
+    ".txt": "texte",
+    ".png": "bilder",
+    ".jpg": "bilder",
+    ".pdf": "dokumente"
+}
 
 def test_txt():
     result = bestimme_kategorie(Path("beispiel.txt"), kategorien)
@@ -67,9 +72,27 @@ def quellordner(tmp_path):
     ordner.mkdir()
     return ordner
 
-def test_verschieben_fehlschlag(quellordner):
+def test_verschieben_fehlschlag(quellordner, capsys):
     datei = quellordner / "fehler.txt"
     datei.write_text("fehler", encoding="utf-8")
+
+    with patch("main.shutil.move", side_effect=OSError("Simulierter Fehler")):
+        organisiere_dateien(quellordner, kategorien)
+
+    captured = capsys.readouterr()
+    assert "Simulierter Fehler" in captured.out
+    assert datei.exists()
+
+def test_ordner_erstellen_fehlschlag(quellordner, capsys):
+    datei = quellordner / "test.txt"
+    datei.write_text("INHALT", encoding="utf-8")
+
+    with patch("pathlib.Path.mkdir", side_effect=OSError("Ordnerfehler")):
+        organisiere_dateien(quellordner, kategorien)
+    captured = capsys.readouterr()
+    assert "Ordnerfehler" in captured.out
+    assert datei.exists()
+
     
 
 
