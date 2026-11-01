@@ -1,4 +1,5 @@
 import pytest
+import logging
 import json
 from unittest.mock import patch
 from pathlib import Path
@@ -51,7 +52,7 @@ def test_datei_existiert_bereits(quellordner):
 def test_ordner_existiert_nicht(tmp_path):
     ordner = tmp_path/"testdateien"
     
-    with pytest.raises(SystemExit):
+    with pytest.raises(FileNotFoundError):
         organisiere_dateien(ordner, kategorien)
 
 def test_unterordner_ueberspringen(quellordner):
@@ -73,25 +74,25 @@ def quellordner(tmp_path):
     ordner.mkdir()
     return ordner
 
-def test_verschieben_fehlschlag(quellordner, capsys):
+def test_verschieben_fehlschlag(quellordner, caplog):
     datei = quellordner / "fehler.txt"
     datei.write_text("fehler", encoding="utf-8")
 
     with patch("main.shutil.move", side_effect=OSError("Simulierter Fehler")):
         organisiere_dateien(quellordner, kategorien)
 
-    captured = capsys.readouterr()
-    assert "Simulierter Fehler" in captured.out
+    
+    assert "Simulierter Fehler" in caplog.text
     assert datei.exists()
 
-def test_ordner_erstellen_fehlschlag(quellordner, capsys):
+def test_ordner_erstellen_fehlschlag(quellordner, caplog):
     datei = quellordner / "test.txt"
     datei.write_text("INHALT", encoding="utf-8")
 
     with patch("pathlib.Path.mkdir", side_effect=OSError("Ordnerfehler")):
         organisiere_dateien(quellordner, kategorien)
-    captured = capsys.readouterr()
-    assert "Ordnerfehler" in captured.out
+  
+    assert "Ordnerfehler" in caplog.text
     assert datei.exists()
 
 def test_konfiguration_laden(tmp_path):
@@ -112,14 +113,14 @@ def test_konfiguration_laden(tmp_path):
 def test_konfiguration_fehlt(tmp_path):
     configdatei = tmp_path / "nicht_vorhanden.json"
 
-    with pytest.raises(SystemExit):
+    with pytest.raises(FileNotFoundError):
         lade_konfiguration(configdatei)
 
 def test_konfiguration_ungueltig(tmp_path):
     configdatei = tmp_path / "ungueltig.json"
     configdatei.write_text(" ''''ungueltig", encoding="utf-8")
 
-    with pytest.raises(SystemExit):
+    with pytest.raises(json.JSONDecodeError):
         lade_konfiguration(configdatei)
 
 def test_konfiguration_leeres_dict(tmp_path):
@@ -129,7 +130,7 @@ def test_konfiguration_leeres_dict(tmp_path):
     s = json.dumps(beispieldict)
     configdatei.write_text(s, encoding="utf-8")
 
-    with pytest.raises(SystemExit):
+    with pytest.raises(ValueError):
         lade_konfiguration(configdatei)
 
 def test_konfiguration_datentyp(tmp_path):
@@ -139,7 +140,7 @@ def test_konfiguration_datentyp(tmp_path):
     s = json.dumps(beispiel)
     configdatei.write_text(s, encoding="utf-8")
 
-    with pytest.raises(SystemExit):
+    with pytest.raises(ValueError):
         lade_konfiguration(configdatei)
 
 def test_konfiguration_fehlende_kategorie(tmp_path):
@@ -149,7 +150,7 @@ def test_konfiguration_fehlende_kategorie(tmp_path):
     s = json.dumps(beispiel)
     configdatei.write_text(s, encoding="utf-8")
 
-    with pytest.raises(SystemExit):
+    with pytest.raises(ValueError):
         lade_konfiguration(configdatei)
 
 def test_konfiguration_falscherdatentyp(tmp_path):
@@ -159,7 +160,7 @@ def test_konfiguration_falscherdatentyp(tmp_path):
     s = json.dumps(beispiel)
     configdatei.write_text(s, encoding="utf-8")
 
-    with pytest.raises(SystemExit):
+    with pytest.raises(ValueError):
         lade_konfiguration(configdatei)
 
 def test_konfiguration_leerevariablen(tmp_path):
@@ -169,8 +170,29 @@ def test_konfiguration_leerevariablen(tmp_path):
     s = json.dumps(beispiel)
     configdatei.write_text(s, encoding="utf-8")
 
-    with pytest.raises(SystemExit):
+    with pytest.raises(ValueError):
         lade_konfiguration(configdatei)
+
+def test_symlink_ausserhalb_ordner(tmp_path):
+    arbeitsverzeichnis = tmp_path / "arbeitsverzeichnis"
+    externes_verzeichnis = tmp_path / "extern" 
+
+    arbeitsverzeichnis.mkdir()
+    externes_verzeichnis.mkdir()
+
+    symlink = arbeitsverzeichnis / "bilder"
+    symlink.symlink_to(externes_verzeichnis, target_is_directory=True)
+
+    bild = arbeitsverzeichnis / "bild.png"
+    bild.write_text("Testinhalt", encoding="utf-8")
+
+    with pytest.raises(ValueError):
+        organisiere_dateien(arbeitsverzeichnis, kategorien)
+
+    assert bild.exists()
+    assert not (externes_verzeichnis / "bild.png").exists()
+
+
 
 
 

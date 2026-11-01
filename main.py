@@ -1,31 +1,34 @@
-﻿from pathlib import Path
+﻿from pathlib import Path, PureWindowsPath, PurePosixPath
+import logging
 import shutil
 import json
+
+logging.basicConfig(filename="Hauptlog.log", level=logging.INFO)
 
 def lade_konfiguration(dateipfad: Path):
     try:
         with open(dateipfad, "r", encoding="utf-8") as file:
             d = json.load(file)
             if not isinstance(d, dict):
-                print(f"JSON Datei enthält kein Dict")
-                raise SystemExit
+                raise ValueError("Config Datei enthält kein Dict")
             elif "ordner" not in d or "kategorien" not in d or not isinstance(d["ordner"], str) or not isinstance(d["kategorien"], dict):
-                print(f"JSON Datei ist fehlerhaft")
-                raise SystemExit
+                raise ValueError("Erforderliche Struktur oder Datentypen stimmen nicht")
             for key, value in d["kategorien"].items():
                 if not isinstance(key, str) or not key.strip() or not isinstance(value, str) or not value.strip():
-                    print("JSON Datei enthält falsche Werte")
-                    raise SystemExit
+                    raise ValueError("JSON Datei enthält falsche Werte")  
+                
+                windows_pfad = PureWindowsPath(value)
+                posix_pfad = PurePosixPath(value)
+                if windows_pfad.is_absolute() or posix_pfad.is_absolute() or ".." in windows_pfad.parts or ".." in posix_pfad.parts or windows_pfad.drive != "" or "/" in value or "\\" in value:
+                    raise ValueError("Pfadangabe enthalten")    
+                                           
             if not d["kategorien"] or not d["ordner"].strip():
-                print("JSON enthält falsche Werte")
-                raise SystemExit
+                raise ValueError("In der JSON fehlen bestimmte Werte")
+                
             return d
-    except FileNotFoundError:
-        print("Config Datei nicht gefunden")
-        raise SystemExit
-    except json.JSONDecodeError:
-        print("JSON enthält ungültige Syntax")
-        raise SystemExit
+    except FileNotFoundError as fehler:
+        raise FileNotFoundError("Config Datei nicht gefunden") from fehler
+
 
 
 
@@ -37,8 +40,7 @@ def bestimme_kategorie(datei: Path, kategorien: dict[str, str]) -> str:
 
 def organisiere_dateien(ordner: Path, kategorien: dict[str, str]) -> None:
     if not ordner.is_dir():
-        print(f"Ordner {ordner} nicht vorhanden!")
-        raise SystemExit
+        raise FileNotFoundError("Arbeitsverzeichnis nicht gefunden")
   
     # compute absolute path
     absoluter_pfad = ordner.resolve() 
@@ -48,13 +50,19 @@ def organisiere_dateien(ordner: Path, kategorien: dict[str, str]) -> None:
             continue
    
         fertiger_pfad = absoluter_pfad / bestimme_kategorie(datei, kategorien)
+        fertiger_pfad = fertiger_pfad.resolve()
+
+
+        if not fertiger_pfad.is_relative_to(absoluter_pfad):
+            raise ValueError("Fertiger Pfad liegt nicht innerhalb von ordner Pfad")
+
         
         try:
             # create path, if not exits
             fertiger_pfad.mkdir(exist_ok=True)
             
         except OSError as fehler:
-            print(f"Ordner konnte nicht erstellt werden: {fehler}")
+            logging.warning("Ordner konnte nicht erstellt werden: %s", fehler)
             continue
 
 
@@ -62,7 +70,7 @@ def organisiere_dateien(ordner: Path, kategorien: dict[str, str]) -> None:
         ziel_datei = fertiger_pfad / datei.name
         # check if file path exists
         if ziel_datei.exists():
-            print(f"Datei existiert bereits: {ziel_datei}")
+            logging.info("Datei existiert bereits: %s", {ziel_datei})
             continue
         # create source file path
         quelldatei = absoluter_pfad / datei.name
@@ -71,18 +79,39 @@ def organisiere_dateien(ordner: Path, kategorien: dict[str, str]) -> None:
             # move source file path to file path
             shutil.move(quelldatei, fertiger_pfad)
         except OSError as fehler:
-            print(f"Die Datei {quelldatei} konnte nicht nach {fertiger_pfad} verschoben werden. {fehler}")
+            logging.error("Die Datei %s konnte nicht nach %s verschoben werden: %s",
+              quelldatei, fertiger_pfad, fehler)
+        
+
 
 
 if __name__ == "__main__":
-    jsonconfig = Path("config.json")   
-    konfiguration = lade_konfiguration(jsonconfig)
+    jsonconfig = Path("config.json")
+   
+    try:
+
+        konfiguration = lade_konfiguration(jsonconfig)
+
+    except FileNotFoundError as fehler:
+        print(f"Datei nicht gefunden: {fehler}")
+        raise SystemExit(1)
+    except json.JSONDecodeError as fehler:
+        print(f"JSON fehlerhaft: {fehler}")
+        raise SystemExit(1)
+    except ValueError as fehler:
+        print(f"Werte in JSON nicht korrekt: {fehler}")
+        raise SystemExit(1)
 
 
     kategorien = konfiguration["kategorien"]
     ordner = Path(konfiguration["ordner"])
-    organisiere_dateien(ordner, kategorien)
 
+    try:
+        organisiere_dateien(ordner, kategorien)
+    except FileNotFoundError as fehler:
+        print(f"Arbeitsverzeichnis nicht gefunden: {fehler}")
+        raise SystemExit(1)
+    
 
 
 

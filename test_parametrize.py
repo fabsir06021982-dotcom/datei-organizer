@@ -17,7 +17,9 @@ def test_txt(input1: str, expected: str):
     result = bestimme_kategorie(pfad, kategorien)
     assert result == expected
 
-@pytest.mark.parametrize("input1", [{"ordner" : 123, "kategorien" : {".txt" : "texte"}}, {"ordner" : "testdateien", "kategorien" : ["werte"]}, {"ordner" : "", "kategorien" : {".txt" : "texte"}}, {"ordner" : "testdateien", "kategorien" : {"" : "texte"}}])
+@pytest.mark.parametrize("input1", [{"ordner" : 123, "kategorien" : {".txt" : "texte"}}, {"ordner" : "testdateien", "kategorien" : ["werte"]}, {"ordner" : "", "kategorien" : {".txt" : "texte"}}, {"ordner" : "testdateien", "kategorien" : {"" : "texte"}}, {"ordner": "testdateien", "kategorien": {".txt": "   "}},
+{"ordner" : "testdateien", "kategorien" : {".txt" : "../bilder"}}, {"ordner" : "testdateien", "kategorien" : {".txt" : "C:\bilder"}}, {"ordner" : "testdateien", "kategorien" : {".txt" : "C:bilder"}}, {"ordner" : "testdateien", "kategorien" : {".txt" : "/bilder"}},  {"ordner" : "testdateien", "kategorien" : {".txt" : "bilder/texte"}},
+ {"ordner" : "testdateien", "kategorien" : {".txt" : r"bilder\texte"}} ])
 def test_konfiguration_ungueltige_werte(tmp_path, input1):
     configdatei = tmp_path / "config.json"
     beispiel = input1
@@ -25,5 +27,5 @@ def test_konfiguration_ungueltige_werte(tmp_path, input1):
     s = json.dumps(beispiel)
     configdatei.write_text(s, encoding="utf-8")
 
-    with pytest.raises(SystemExit):
+    with pytest.raises(ValueError):
         lade_konfiguration(configdatei)
