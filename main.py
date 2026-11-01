@@ -1,9 +1,33 @@
 ﻿from pathlib import Path, PureWindowsPath, PurePosixPath
 import logging
+from logging.handlers import RotatingFileHandler
 import shutil
 import json
 
-logging.basicConfig(filename="Hauptlog.log", level=logging.INFO)
+handler = RotatingFileHandler(
+    filename = "Hauptlog.log",
+    maxBytes = 1_000_000,
+    backupCount= 3,
+    encoding="utf-8"
+)
+
+handler.setLevel(logging.INFO)
+formatter = logging.Formatter(
+    "%(asctime)s - %(levelname)s - %(message)s"
+)
+handler.setFormatter(formatter)
+logging.getLogger().addHandler(handler)
+logging.getLogger().setLevel(logging.INFO)
+
+streamhandler = logging.StreamHandler()
+
+streamhandler.setLevel(logging.WARNING)
+formatterstream = logging.Formatter("%(levelname)s - %(message)s")
+
+streamhandler.setFormatter(formatterstream)
+logging.getLogger().addHandler(streamhandler)
+
+
 
 def lade_konfiguration(dateipfad: Path):
     try:
@@ -56,21 +80,24 @@ def organisiere_dateien(ordner: Path, kategorien: dict[str, str]) -> None:
         if not fertiger_pfad.is_relative_to(absoluter_pfad):
             raise ValueError("Fertiger Pfad liegt nicht innerhalb von ordner Pfad")
 
-        
-        try:
-            # create path, if not exits
-            fertiger_pfad.mkdir(exist_ok=True)
-            
-        except OSError as fehler:
-            logging.warning("Ordner konnte nicht erstellt werden: %s", fehler)
-            continue
+        if not fertiger_pfad.exists():
+            try:
+           
+                # create path, if not exits
+                fertiger_pfad.mkdir()
+                logging.info("Der Ordner %s wurde erfolgreich erstellt", fertiger_pfad)
+            except OSError as fehler:
+                logging.warning("Ordner konnte nicht erstellt werden: %s", fehler)
+                continue
+        else:
+                logging.info("Der Ordner %s ist bereits vorhanden", fertiger_pfad)
 
 
         # create file path
         ziel_datei = fertiger_pfad / datei.name
         # check if file path exists
         if ziel_datei.exists():
-            logging.info("Datei existiert bereits: %s", {ziel_datei})
+            logging.info("Datei existiert bereits: %s", ziel_datei)
             continue
         # create source file path
         quelldatei = absoluter_pfad / datei.name
@@ -78,9 +105,10 @@ def organisiere_dateien(ordner: Path, kategorien: dict[str, str]) -> None:
         try:
             # move source file path to file path
             shutil.move(quelldatei, fertiger_pfad)
-        except OSError as fehler:
-            logging.error("Die Datei %s konnte nicht nach %s verschoben werden: %s",
-              quelldatei, fertiger_pfad, fehler)
+            logging.info("Datei %s wurde erfolgreich nach %s verschoben", quelldatei, fertiger_pfad)
+        except OSError:
+            logging.exception("Die Datei %s konnte nicht nach %s verschoben werden ",
+              quelldatei, fertiger_pfad)
         
 
 
