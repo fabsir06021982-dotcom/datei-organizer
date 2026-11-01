@@ -6,6 +6,19 @@ def lade_konfiguration(dateipfad: Path):
     try:
         with open(dateipfad, "r", encoding="utf-8") as file:
             d = json.load(file)
+            if not isinstance(d, dict):
+                print(f"JSON Datei enthält kein Dict")
+                raise SystemExit
+            elif "ordner" not in d or "kategorien" not in d or not isinstance(d["ordner"], str) or not isinstance(d["kategorien"], dict):
+                print(f"JSON Datei ist fehlerhaft")
+                raise SystemExit
+            for key, value in d["kategorien"].items():
+                if not isinstance(key, str) or not key.strip() or not isinstance(value, str) or not value.strip():
+                    print("JSON Datei enthält falsche Werte")
+                    raise SystemExit
+            if not d["kategorien"] or not d["ordner"].strip():
+                print("JSON enthält falsche Werte")
+                raise SystemExit
             return d
     except FileNotFoundError:
         print("Config Datei nicht gefunden")
@@ -64,6 +77,8 @@ def organisiere_dateien(ordner: Path, kategorien: dict[str, str]) -> None:
 if __name__ == "__main__":
     jsonconfig = Path("config.json")   
     konfiguration = lade_konfiguration(jsonconfig)
+
+
     kategorien = konfiguration["kategorien"]
     ordner = Path(konfiguration["ordner"])
     organisiere_dateien(ordner, kategorien)

@@ -122,5 +122,58 @@ def test_konfiguration_ungueltig(tmp_path):
     with pytest.raises(SystemExit):
         lade_konfiguration(configdatei)
 
+def test_konfiguration_leeres_dict(tmp_path):
+    configdatei = tmp_path / "config.json"
+    beispieldict = { "ordner": "testdateien", "kategorien" : {}}
+
+    s = json.dumps(beispieldict)
+    configdatei.write_text(s, encoding="utf-8")
+
+    with pytest.raises(SystemExit):
+        lade_konfiguration(configdatei)
+
+def test_konfiguration_datentyp(tmp_path):
+    configdatei = tmp_path / "config.json"
+    beispiel = ["testdateien", "texte"]
+
+    s = json.dumps(beispiel)
+    configdatei.write_text(s, encoding="utf-8")
+
+    with pytest.raises(SystemExit):
+        lade_konfiguration(configdatei)
+
+def test_konfiguration_fehlende_kategorie(tmp_path):
+    configdatei = tmp_path / "config.json"
+    beispiel = {"ordner" : "testdateien"}
+
+    s = json.dumps(beispiel)
+    configdatei.write_text(s, encoding="utf-8")
+
+    with pytest.raises(SystemExit):
+        lade_konfiguration(configdatei)
+
+def test_konfiguration_falscherdatentyp(tmp_path):
+    configdatei = tmp_path / "config.json"
+    beispiel = {"ordner" : "testdateien", "kategorien" : {".txt" : 123}}
+
+    s = json.dumps(beispiel)
+    configdatei.write_text(s, encoding="utf-8")
+
+    with pytest.raises(SystemExit):
+        lade_konfiguration(configdatei)
+
+def test_konfiguration_leerevariablen(tmp_path):
+    configdatei = tmp_path / "config.json"
+    beispiel = {"ordner" : "testdateien", "kategorien" : {".txt" : ""}}
+
+    s = json.dumps(beispiel)
+    configdatei.write_text(s, encoding="utf-8")
+
+    with pytest.raises(SystemExit):
+        lade_konfiguration(configdatei)
+
+
+
+
     
 

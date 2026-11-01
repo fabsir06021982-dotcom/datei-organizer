@@ -1,6 +1,7 @@
 import pytest
+import json
 from pathlib import Path
-from main import bestimme_kategorie
+from main import bestimme_kategorie, lade_konfiguration
 
 kategorien = {
     ".txt": "texte",
@@ -15,3 +16,14 @@ def test_txt(input1: str, expected: str):
     
     result = bestimme_kategorie(pfad, kategorien)
     assert result == expected
+
+@pytest.mark.parametrize("input1", [{"ordner" : 123, "kategorien" : {".txt" : "texte"}}, {"ordner" : "testdateien", "kategorien" : ["werte"]}, {"ordner" : "", "kategorien" : {".txt" : "texte"}}, {"ordner" : "testdateien", "kategorien" : {"" : "texte"}}])
+def test_konfiguration_ungueltige_werte(tmp_path, input1):
+    configdatei = tmp_path / "config.json"
+    beispiel = input1
+
+    s = json.dumps(beispiel)
+    configdatei.write_text(s, encoding="utf-8")
+
+    with pytest.raises(SystemExit):
+        lade_konfiguration(configdatei)
