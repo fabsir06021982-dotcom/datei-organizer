@@ -1,7 +1,8 @@
 import pytest
+import json
 from unittest.mock import patch
 from pathlib import Path
-from main import organisiere_dateien, bestimme_kategorie
+from main import organisiere_dateien, bestimme_kategorie, lade_konfiguration
 
 kategorien = {
     ".txt": "texte",
@@ -93,9 +94,33 @@ def test_ordner_erstellen_fehlschlag(quellordner, capsys):
     assert "Ordnerfehler" in captured.out
     assert datei.exists()
 
-    
+def test_konfiguration_laden(tmp_path):
+    configdatei = tmp_path / "config.json"
+  
 
+    beispieldict = { "ordner" : "testdateien", "kategorien" : {".txt" : "texte", ".png" : "bilder", ".jpg" : "bilder", ".pdf" : "dokumente"}}
+    s = json.dumps(beispieldict)
 
+    configdatei.write_text(s, encoding="utf-8")
+
+    konfiguration = lade_konfiguration(configdatei)
+    kategorien = konfiguration["kategorien"]
+    ordner = Path(konfiguration["ordner"])
+    assert kategorien == {".txt" : "texte", ".png" : "bilder", ".jpg" : "bilder", ".pdf" : "dokumente"}
+    assert ordner == Path("testdateien")
+
+def test_konfiguration_fehlt(tmp_path):
+    configdatei = tmp_path / "nicht_vorhanden.json"
+
+    with pytest.raises(SystemExit):
+        lade_konfiguration(configdatei)
+
+def test_konfiguration_ungueltig(tmp_path):
+    configdatei = tmp_path / "ungueltig.json"
+    configdatei.write_text(" ''''ungueltig", encoding="utf-8")
+
+    with pytest.raises(SystemExit):
+        lade_konfiguration(configdatei)
 
     
 
