@@ -250,7 +250,19 @@ def test_cli_config_falsche_werte(tmp_path):
     assert ausgabe.returncode == 1
     assert "Werte in JSON nicht korrekt" in ausgabe.stdout
 
+def test_cli_arbeitsverzeichnis_fehlt(tmp_path):
+    arbeitsverzeichnis = tmp_path / "arbeitsverzeichnis"
+    arbeitsverzeichnis.mkdir()
+    configdatei = arbeitsverzeichnis / "config.json"
+    beispielconfig = {"ordner": "existiert_nicht", "kategorien": {".txt": "texte"}}
 
+    s = json.dumps(beispielconfig)
+    configdatei.write_text(s, encoding="utf-8")
+
+    main_datei = Path.cwd() / "main.py"
+    ausgabe = subprocess.run(["python", str(main_datei)], cwd=arbeitsverzeichnis, capture_output=True, text=True)
+    assert ausgabe.returncode == 1
+    assert "Arbeitsverzeichnis nicht gefunden" in ausgabe.stdout    
 
     
 

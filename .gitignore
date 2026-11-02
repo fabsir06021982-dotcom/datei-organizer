@@ -3,3 +3,5 @@ __pycache__/
 .venv/
 testdateien/
 Hauptlog.log*
+.coverage
+.coverage.*
