@@ -1,5 +1,7 @@
 import pytest
 import logging
+import shutil
+import subprocess
 import json
 from unittest.mock import patch
 from pathlib import Path
@@ -192,10 +194,65 @@ def test_symlink_ausserhalb_ordner(tmp_path):
     assert bild.exists()
     assert not (externes_verzeichnis / "bild.png").exists()
 
+def test_logging_info(caplog):
+    logging.info("Testinformation")
 
+    assert "Testinformation" in caplog.text
+    assert caplog.records[0].levelname == "INFO"
 
+def simuliere_verschieben_fehler(quelle, ziel):
+    raise OSError("Testfehler beim verschieben")
+
+def test_logging_verschieben_fehler(monkeypatch, caplog, tmp_path):
+    monkeypatch.setattr(shutil,"move", simuliere_verschieben_fehler)
+    ordner = tmp_path / "arbeitsverzeichnis"
+    ordner.mkdir()
+    bild = ordner / "bild.png"
+    bild.write_text("Bsp", encoding="utf-8")
+
+    organisiere_dateien(ordner, kategorien)
+
+    assert "Testfehler beim verschieben" in caplog.text
+    assert any(eintrag.levelname == "ERROR" for eintrag in caplog.records)
+    assert bild.exists()
+
+def test_cli_config_fehlt(tmp_path):
+    ordner = tmp_path / "arbeitsverzeichnis"
+    ordner.mkdir()
+    main_datei = Path.cwd() / "main.py"
+
+    ausgabe = subprocess.run(["python", str(main_datei)], cwd=ordner, capture_output=True, text=True)
+    assert ausgabe.returncode == 1
+    assert "Datei nicht gefunden" in ausgabe.stdout
+
+def test_cli_config_ungueltig(tmp_path):
+    ordner = tmp_path / "arbeitsverzeichnis"
+    ordner.mkdir()
+    configdatei = ordner / "config.json"
+    configdatei.write_text("XYZ", encoding="utf-8")
+    main_datei = Path.cwd() / "main.py"
+
+    ausgabe = subprocess.run(["python", str(main_datei)], cwd=ordner, capture_output=True, text=True)
+    assert ausgabe.returncode == 1
+    assert "JSON fehlerhaft" in ausgabe.stdout
+
+def test_cli_config_falsche_werte(tmp_path):
+    arbeitsverzeichnis = tmp_path / "arbeitsverzeichnis"
+    arbeitsverzeichnis.mkdir()
+    configdatei = arbeitsverzeichnis / "config.json"
+    beispielconfig = {"ordner": 123, "kategorien": {".txt": "texte"}}
+
+    s = json.dumps(beispielconfig)
+    configdatei.write_text(s, encoding="utf-8")
+
+    main_datei = Path.cwd() / "main.py"
+    ausgabe = subprocess.run(["python", str(main_datei)], cwd=arbeitsverzeichnis, capture_output=True, text=True)
+    assert ausgabe.returncode == 1
+    assert "Werte in JSON nicht korrekt" in ausgabe.stdout
 
 
 
     
+
+
 
