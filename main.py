@@ -130,7 +130,12 @@ def zeige_analyse(analysedict, prozentdict):
     for item in analysedict:
         anz = analysedict[item]["anzahl"]
         pro = prozentdict[item]
-        print(f"Dateiendung: {item}, Anzahl: {anz}, Prozent: {pro}")
+        kat = analysedict[item]["kategorie"]  
+        if item == "":
+            item = "ohne Endung"
+        if kat is None:
+            kat = "nicht zugeordnet" 
+        print(f"Dateiendung: {item}, Anzahl: {anz}, Prozent: {pro:.2f}%, Kategorie: {kat}")
   
 if __name__ == "__main__":
     jsonconfig = Path("config.json")
@@ -158,9 +163,9 @@ if __name__ == "__main__":
     # except FileNotFoundError as fehler:
     #     print(f"Arbeitsverzeichnis nicht gefunden: {fehler}")
     #     raise SystemExit(1)
-
-    print(prozent_dateien(analysiere_dateien(ordner, kategorien)))
-    zeige_analyse(analysiere_dateien(ordner, kategorien), prozent_dateien(analysiere_dateien(ordner, kategorien)))
+    analyse = analysiere_dateien(ordner, kategorien)
+    prozent = prozent_dateien(analyse)
+    zeige_analyse(analyse, prozent)
     
 
 
