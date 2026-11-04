@@ -111,8 +111,21 @@ def organisiere_dateien(ordner: Path, kategorien: dict[str, str]) -> None:
               quelldatei, fertiger_pfad)
         
 
+def analysiere_dateien(ordnerpfad: Path, kategorien: dict) -> dict:
+    analysedict = {}
+    ordner = Path(ordnerpfad)
+    for pfad in ordner.iterdir():
+        if pfad.is_file():
+            dateiendung = pfad.suffix.lower()
+            if dateiendung in analysedict:
+                analysedict[dateiendung]["anzahl"] += 1
+            else:               
+                analysedict[dateiendung] = {"anzahl" : 1, "kategorie" : kategorien.get(dateiendung)}
+        else:
+            continue
+    return analysedict
 
-
+  
 if __name__ == "__main__":
     jsonconfig = Path("config.json")
    
@@ -134,11 +147,13 @@ if __name__ == "__main__":
     kategorien = konfiguration["kategorien"]
     ordner = Path(konfiguration["ordner"])
 
-    try:
-        organisiere_dateien(ordner, kategorien)
-    except FileNotFoundError as fehler:
-        print(f"Arbeitsverzeichnis nicht gefunden: {fehler}")
-        raise SystemExit(1)
+    # try:
+    #     organisiere_dateien(ordner, kategorien)
+    # except FileNotFoundError as fehler:
+    #     print(f"Arbeitsverzeichnis nicht gefunden: {fehler}")
+    #     raise SystemExit(1)
+
+    print(analysiere_dateien(ordner, kategorien))
     
 
 
