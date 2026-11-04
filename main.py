@@ -18,16 +18,11 @@ formatter = logging.Formatter(
 handler.setFormatter(formatter)
 logging.getLogger().addHandler(handler)
 logging.getLogger().setLevel(logging.INFO)
-
 streamhandler = logging.StreamHandler()
-
 streamhandler.setLevel(logging.WARNING)
 formatterstream = logging.Formatter("%(levelname)s - %(message)s")
-
 streamhandler.setFormatter(formatterstream)
 logging.getLogger().addHandler(streamhandler)
-
-
 
 def lade_konfiguration(dateipfad: Path):
     try:
@@ -52,9 +47,6 @@ def lade_konfiguration(dateipfad: Path):
             return d
     except FileNotFoundError as fehler:
         raise FileNotFoundError("Config Datei nicht gefunden") from fehler
-
-
-
 
 def bestimme_kategorie(datei: Path, kategorien: dict[str, str]) -> str | None:
     kategorie = kategorien.get(datei.suffix.lower())
@@ -96,7 +88,6 @@ def organisiere_dateien(ordner: Path, kategorien: dict[str, str]) -> None:
         else:
                 logging.info("Der Ordner %s ist bereits vorhanden", fertiger_pfad)
 
-
         # create file path
         ziel_datei = fertiger_pfad / datei.name
         # check if file path exists
@@ -114,21 +105,32 @@ def organisiere_dateien(ordner: Path, kategorien: dict[str, str]) -> None:
             logging.exception("Die Datei %s konnte nicht nach %s verschoben werden ",
               quelldatei, fertiger_pfad)
         
-
 def analysiere_dateien(ordnerpfad: Path, kategorien: dict) -> dict:
     analysedict = {}
     ordner = Path(ordnerpfad)
-    for pfad in ordner.iterdir():
+    for pfad in ordner.rglob("*"):
         if pfad.is_file():
             dateiendung = pfad.suffix.lower()
             if dateiendung in analysedict:
                 analysedict[dateiendung]["anzahl"] += 1
             else:               
                 analysedict[dateiendung] = {"anzahl" : 1, "kategorie" : kategorien.get(dateiendung)}
-        else:
-            continue
     return analysedict
 
+def prozent_dateien(analysedict: dict) -> dict:
+    gesamtzahldateien = sum(eintrag["anzahl"] for eintrag in analysedict.values())
+    prozentdict = {}
+    for dateiendung in analysedict:
+        anzahl = analysedict[dateiendung]["anzahl"]
+        prozent = anzahl / gesamtzahldateien * 100
+        prozentdict.update({dateiendung : prozent})
+    return prozentdict
+
+def zeige_analyse(analysedict, prozentdict):
+    for item in analysedict:
+        anz = analysedict[item]["anzahl"]
+        pro = prozentdict[item]
+        print(f"Dateiendung: {item}, Anzahl: {anz}, Prozent: {pro}")
   
 if __name__ == "__main__":
     jsonconfig = Path("config.json")
@@ -157,7 +159,8 @@ if __name__ == "__main__":
     #     print(f"Arbeitsverzeichnis nicht gefunden: {fehler}")
     #     raise SystemExit(1)
 
-    print(analysiere_dateien(ordner, kategorien))
+    print(prozent_dateien(analysiere_dateien(ordner, kategorien)))
+    zeige_analyse(analysiere_dateien(ordner, kategorien), prozent_dateien(analysiere_dateien(ordner, kategorien)))
     
 
 
