@@ -56,10 +56,10 @@ def lade_konfiguration(dateipfad: Path):
 
 
 
-def bestimme_kategorie(datei: Path, kategorien: dict[str, str]) -> str:
-    kategorie = kategorien.get(datei.suffix)
+def bestimme_kategorie(datei: Path, kategorien: dict[str, str]) -> str | None:
+    kategorie = kategorien.get(datei.suffix.lower())
     if kategorie is None:
-        return "sonstiges"
+        return None
     return kategorie
 
 def organisiere_dateien(ordner: Path, kategorien: dict[str, str]) -> None:
@@ -72,8 +72,12 @@ def organisiere_dateien(ordner: Path, kategorien: dict[str, str]) -> None:
     for datei in ordner.iterdir():
         if datei.is_dir():
             continue
-   
-        fertiger_pfad = absoluter_pfad / bestimme_kategorie(datei, kategorien)
+        
+        richtige_kategorie = bestimme_kategorie(datei, kategorien)
+        if richtige_kategorie is None:
+            continue
+        
+        fertiger_pfad = absoluter_pfad / richtige_kategorie
         fertiger_pfad = fertiger_pfad.resolve()
 
 
