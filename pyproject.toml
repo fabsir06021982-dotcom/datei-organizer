@@ -1,0 +1,22 @@
+[project]
+name = "datei-organizer"
+version = "0.1.0"
+description = "Mit dem datei-organizer kann man bequem innerhalb eines Ordner Dateien analysieren und dieser einer bestimmten Kategoriegruppe zuordnen. Anschließend wird die Dateien in die zuvor angelegten Kategoriegruppen einsortiert."
+authors = [
+    {name = "Fabian Sirtl"}
+]
+readme = "README.md"
+requires-python = ">=3.10,<4.0"
+dependencies = [
+    "typer (>=0.27.3,<0.28.0)"
+]
+
+[dependency-groups]
+dev = [
+    "pytest (>=9.2.0,<10.0.0)"
+]
+
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
