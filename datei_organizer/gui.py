@@ -2,7 +2,7 @@ import tkinter as tk
 from tkinter import ttk
 from tkinter import filedialog
 from pathlib import Path
-from main import lade_konfiguration
+from .main import lade_konfiguration
 
 class OrganizerGUI():
     def __init__(self, root, konfiguration):
@@ -90,14 +90,14 @@ class OrganizerGUI():
 
 
 
+if __name__ == "__main__":
+
+    konfigurationspfad = Path("config.json")
+    konfiguration = lade_konfiguration(konfigurationspfad)
+
+    root = tk.Tk()
+    organizergui = OrganizerGUI(root, konfiguration)
 
 
-konfigurationspfad = Path("config.json")
-konfiguration = lade_konfiguration(konfigurationspfad)
 
-root = tk.Tk()
-organizergui = OrganizerGUI(root, konfiguration)
-
-
-
-root.mainloop()
+    root.mainloop()

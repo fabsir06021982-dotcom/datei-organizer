@@ -1,7 +1,7 @@
 import pytest
 import json
 from pathlib import Path
-from main import bestimme_kategorie, lade_konfiguration
+from datei_organizer.main import bestimme_kategorie, lade_konfiguration
 
 kategorien = {
     ".txt": "texte",

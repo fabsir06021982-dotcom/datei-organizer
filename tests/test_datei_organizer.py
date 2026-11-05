@@ -5,7 +5,7 @@ import subprocess
 import json
 from unittest.mock import patch
 from pathlib import Path
-from main import organisiere_dateien, bestimme_kategorie, lade_konfiguration
+from datei_organizer.main import organisiere_dateien, bestimme_kategorie, lade_konfiguration
 
 kategorien = {
     ".txt": "texte",
