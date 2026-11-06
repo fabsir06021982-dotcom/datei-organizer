@@ -48,6 +48,11 @@ def lade_konfiguration(dateipfad: Path):
     except FileNotFoundError as fehler:
         raise FileNotFoundError("Config Datei nicht gefunden") from fehler
 
+def speichere_konfiguration(konfigurationspfad: Path, konfiguration: dict) -> None:
+    with konfigurationspfad.open("w", encoding="utf-8") as datei:
+        json.dump(konfiguration, datei, indent=4, ensure_ascii=False)
+
+
 def bestimme_kategorie(datei: Path, kategorien: dict[str, str]) -> str | None:
     kategorie = kategorien.get(datei.suffix.lower())
     if kategorie is None:
