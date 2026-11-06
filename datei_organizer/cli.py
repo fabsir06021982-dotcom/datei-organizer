@@ -1,5 +1,5 @@
 from pathlib import Path
-from .main import (analysiere_dateien, organisiere_dateien, lade_konfiguration, prozent_dateien, zeige_analyse)
+from .main import (analysiere_dateien, organisiere_dateien, lade_konfiguration, prozent_dateien)
 import typer
 from rich.prompt import Prompt
 from rich.panel import Panel
@@ -52,21 +52,28 @@ def analyse():
             console.print("[cyan]Im ausgewählten Ordner wurden keine Dateien gefunden.[/cyan]")
             return
         prozent = prozent_dateien(analyse_ergebnis)
-        erstelle_analyse_tabelle(analyse_ergebnis, prozent)       
+        console.print(erstelle_analyse_tabelle(analyse_ergebnis, prozent))       
     else:
         console.print("[red italic]Der ausgewählte Ordner ist ungueltig![/red italic]")
         raise typer.Abort()
+       
 
-def erstelle_analyse_tabelle(analyse_ergebnis: dict, prozent: dict) -> None:
+def erstelle_analyse_tabelle(analyse_ergebnis: dict, prozent: dict) -> Table:
     table = Table(box=box.SQUARE, title="Analyseergebnis")
     table.add_column("Dateiendung", style="purple", no_wrap=True)
     table.add_column("Anzahl", style="magenta")
     table.add_column("Anteil", justify="right", style="green")
     table.add_column("Kategorie", justify="right", style="cyan")
-    for eintrag in analyse_ergebnis:
-        table.add_row(str(eintrag), str(analyse_ergebnis[eintrag]["anzahl"]),str(prozent[eintrag]), str(analyse_ergebnis[eintrag]["kategorie"]))
-    console.print(table)
-
+    for dateiendung, daten in analyse_ergebnis.items():
+        wert = dateiendung
+        kat = daten["kategorie"]
+        if wert == "":
+            wert = "ohne Endung"
+        if kat is None:
+            kat = "nicht zugeordnet"
+        zahl = prozent[dateiendung]
+        table.add_row(wert, str(daten["anzahl"]),f"{zahl:.2f}%", kat)
+    return table
 
 @app.command()
 def sortiere():
