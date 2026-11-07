@@ -1,5 +1,5 @@
 from pathlib import Path
-from .main import (analysiere_dateien, organisiere_dateien, lade_konfiguration, prozent_dateien)
+from .main import (analysiere_dateien, organisiere_dateien, lade_konfiguration, prozent_dateien, speichere_konfiguration)
 import typer
 from rich.prompt import Prompt
 from rich.panel import Panel

@@ -33,7 +33,7 @@ def lade_konfiguration(dateipfad: Path):
             elif "ordner" not in d or "kategorien" not in d or not isinstance(d["ordner"], str) or not isinstance(d["kategorien"], dict):
                 raise ValueError("Erforderliche Struktur oder Datentypen stimmen nicht")
             for key, value in d["kategorien"].items():
-                if not isinstance(key, str) or not key.strip() or not isinstance(value, str) or not value.strip():
+                if not isinstance(key, str) or (key != "" and not key.strip()) or not isinstance(value, str) or not value.strip():
                     raise ValueError("JSON Datei enthält falsche Werte")  
                 
                 windows_pfad = PureWindowsPath(value)
