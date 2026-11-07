@@ -1,7 +1,7 @@
 from pathlib import Path
 from .main import (analysiere_dateien, organisiere_dateien, lade_konfiguration, prozent_dateien, speichere_konfiguration)
 import typer
-from rich.prompt import Prompt
+from rich.prompt import Prompt, Confirm
 from rich.panel import Panel
 from rich.console import Console
 from rich.table import Table
@@ -56,6 +56,23 @@ def analyse():
     else:
         console.print("[red italic]Der ausgewählte Ordner ist ungueltig![/red italic]")
         raise typer.Abort()
+    if not Confirm.ask("Möchtest du Kategoriezuordnung bearbeiten?"):
+        console.print("[cyan]Kategoriezuordnung wird nicht bearbeitet. Ende.[/cyan]")
+        return
+    console.print("Kategoriezuordnung")
+    bearbeite_zurodnungen(konfiguration["kategorien"], analyse_ergebnis)
+    
+
+def bearbeite_zurodnungen(kategorien: dict, analysedict: dict):
+    neue_kategorien = kategorien.copy()
+    for dateiendung in analysedict:
+        zuordnung = neue_kategorien.get(dateiendung)
+        if zuordnung is None:
+            zuordnung = "nicht zugeordnert"
+        console.print(f"{dateiendung} -> {zuordnung}")
+
+
+
        
 
 def erstelle_analyse_tabelle(analyse_ergebnis: dict, prozent: dict) -> Table:
