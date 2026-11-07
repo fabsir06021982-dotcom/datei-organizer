@@ -26,7 +26,7 @@ logging.getLogger().addHandler(streamhandler)
 
 def lade_konfiguration(dateipfad: Path):
     try:
-        with open(dateipfad, "r", encoding="utf-8") as file:
+        with dateipfad.open("r", encoding="utf-8") as file:
             d = json.load(file)
             if not isinstance(d, dict):
                 raise ValueError("Config Datei enthält kein Dict")
