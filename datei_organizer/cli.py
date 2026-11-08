@@ -18,19 +18,13 @@ console = Console()
 def main(ctx: typer.Context) -> None:
     """Start the file organizer."""
     console.print()
-    console.print(
-        "🚀 [bold underline green]"
-        "Willkommen im Datei-Organizer!"
-        "[/bold underline green]"
-    )
+    console.print("🚀 [bold underline green]Willkommen im Datei-Organizer![/bold underline green]")
     console.print("[cyan]❓ Nutze --help für eine Liste aller Befehle[/cyan]")
     console.print()
     console.print()
 
     if ctx.invoked_subcommand is None:
-        console.print(
-            "[red italic]Kein Befehl übergeben. Beende...[/red italic] ➜🚪"
-        )
+        console.print("[red italic]Kein Befehl übergeben. Beende...[/red italic] ➜🚪")
 
 
 @app.command("analyse")
@@ -43,54 +37,31 @@ def analyze() -> None:
     configuration = lade_konfiguration(configuration_path)
     default_folder = Path(configuration["ordner"]).resolve()
 
-    console.print(
-        Panel(
-            str(default_folder),
-            title="Standardordner aus der Konfiguration",
-        )
-    )
-
-    folder_input = Prompt.ask(
-        "[cyan]Neuen Ordner eingeben oder Enter ⏎ "
-        "für den Standardordner[/cyan]"
-    )
+    console.print(Panel(str(default_folder), title="Standardordner aus der Konfiguration"))
+    folder_input = Prompt.ask("[cyan]Neuen Ordner eingeben oder Enter ⏎ für den Standardordner[/cyan]")
 
     if folder_input == "":
         selected_folder = default_folder
-        console.print(
-            "[cyan]Standardordner aus der Konfiguration wird verwendet.[/cyan]"
-        )
+        console.print("[cyan]Standardordner aus der Konfiguration wird verwendet.[/cyan]")
     else:
         selected_folder = Path(folder_input).resolve()
 
     if not selected_folder.is_dir():
-        console.print(
-            "[red italic]Der ausgewählte Ordner ist ungültig![/red italic]"
-        )
+        console.print("[red italic]Der ausgewählte Ordner ist ungültig![/red italic]")
         raise typer.Abort()
 
-    console.print(
-        Panel(str(selected_folder), title="Ausgewählter Ordner")
-    )
-
-    analysis_result = analysiere_dateien(
-        selected_folder,
-        configuration["kategorien"],
-    )
+    console.print(Panel(str(selected_folder), title="Ausgewählter Ordner"))
+    analysis_result = analysiere_dateien(selected_folder, configuration["kategorien"])
 
     if not analysis_result:
-        console.print(
-            "[cyan]Im ausgewählten Ordner wurden keine Dateien gefunden.[/cyan]"
-        )
+        console.print("[cyan]Im ausgewählten Ordner wurden keine Dateien gefunden.[/cyan]")
         return
 
     percentages = prozent_dateien(analysis_result)
     console.print(create_analysis_table(analysis_result, percentages))
 
     if not Confirm.ask("Möchtest du die Kategoriezuordnungen bearbeiten?"):
-        console.print(
-            "[cyan]Kategoriezuordnungen werden nicht bearbeitet. Ende.[/cyan]"
-        )
+        console.print("[cyan]Kategoriezuordnungen werden nicht bearbeitet. Ende.[/cyan]")
         return
 
     console.print("Kategoriezuordnungen")
@@ -112,10 +83,26 @@ def edit_assignments(categories: dict, analysis_result: dict) -> None:
         console.print(f"{display_extension} -> {assignment}")
 
 
-def create_analysis_table(
-    analysis_result: dict,
-    percentages: dict,
-) -> Table:
+def create_assignment_table(categories: dict, analysis_result: dict) -> Table:
+    """Build and return a table showing file extensions and their category assignments."""
+    table = Table(box=box.SQUARE, title="Kategoriezuordnung")
+    table.add_column("Dateiendung", style="purple", no_wrap=True)
+    table.add_column("Kategorie", style="cyan")
+
+    for file_extension in analysis_result:
+        display_extension = file_extension or "ohne Endung"
+        assignment = new_categories.get(file_extension)
+
+        if assignment is None:
+            assignment = "nicht zugeordnet"
+        
+        table.add_row(display_extension, assignment)
+
+    return table
+
+
+
+def create_analysis_table(analysis_result: dict, percentages: dict) -> Table:
     """Build and return a table containing the analysis results."""
     table = Table(box=box.SQUARE, title="Analyseergebnis")
     table.add_column("Dateiendung", style="purple", no_wrap=True)
@@ -130,12 +117,7 @@ def create_analysis_table(
         if category is None:
             category = "nicht zugeordnet"
 
-        table.add_row(
-            display_extension,
-            str(data["anzahl"]),
-            f"{percentages[file_extension]:.2f}%",
-            category,
-        )
+        table.add_row(display_extension, str(data["anzahl"]), f"{percentages[file_extension]:.2f}%", category)
 
     return table
 
