@@ -25,6 +25,9 @@ streamhandler.setFormatter(formatterstream)
 logging.getLogger().addHandler(streamhandler)
 
 def lade_konfiguration(dateipfad: Path):
+    """
+    load configuration file
+    """
     try:
         with dateipfad.open("r", encoding="utf-8") as file:
             d = json.load(file)
@@ -49,6 +52,9 @@ def lade_konfiguration(dateipfad: Path):
         raise FileNotFoundError("Config Datei nicht gefunden") from fehler
 
 def speichere_konfiguration(konfigurationspfad: Path, konfiguration: dict) -> None:
+    """
+    save configuration file
+    """
     with konfigurationspfad.open("w", encoding="utf-8") as datei:
         json.dump(konfiguration, datei, indent=4, ensure_ascii=False)
 
