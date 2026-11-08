@@ -7,7 +7,7 @@ from rich.panel import Panel
 from rich.prompt import Confirm, Prompt
 from rich.table import Table
 
-from .main import analysiere_dateien, lade_konfiguration, prozent_dateien
+from .main import analysiere_dateien, lade_konfiguration, prozent_dateien, validate_category_name
 
 
 app = typer.Typer()
@@ -63,24 +63,52 @@ def analyze() -> None:
     if not Confirm.ask("Möchtest du die Kategoriezuordnungen bearbeiten?"):
         console.print("[cyan]Kategoriezuordnungen werden nicht bearbeitet. Ende.[/cyan]")
         return
-
-    console.print("Kategoriezuordnungen")
+    console.print()
+    console.print()
+    console.print("[bold underline magenta]📁 Kategoriezuordnungen[/bold underline magenta]")
+    console.print()
     edit_assignments(configuration["kategorien"], analysis_result)
 
 
-def edit_assignments(categories: dict, analysis_result: dict) -> None:
+def edit_assignments(categories: dict, analysis_result: dict) -> dict:
     """Prepare category assignments for editing."""
     # Work on a draft so changes can later be discarded.
     new_categories = categories.copy()
-
+    console.print(create_assignment_table(new_categories, analysis_result))
     for file_extension in analysis_result:
         display_extension = file_extension or "ohne Endung"
         assignment = new_categories.get(file_extension)
-
         if assignment is None:
             assignment = "nicht zugeordnet"
 
-        console.print(f"{display_extension} -> {assignment}")
+        change_assignment = Confirm.ask(f"[cyan]Möchten Sie die aktuelle Zuordnung von Ordner 📁 {assignment} zu Dateiendung📄 {display_extension} ändern?[/cyan]")
+        if not change_assignment:
+            continue
+        delete_assignment = Confirm.ask("[cyan]Soll die Zuordnung gelöscht ✂️ werden?[/cyan]")
+        if delete_assignment:
+            delete_output = new_categories.pop(file_extension, None)
+            if delete_output is None:
+                console.print("[red italic]Löschen nicht möglich. Kategorienzuordnung fehlt.[/red italic]")
+                continue
+            console.print("[cyan]Zuordnung erfolgreich gelöscht.[/cyan]")
+        else:
+            for _ in range(3):
+                new_assignment = Prompt.ask(f"[cyan]Bitte einen gültigen Ordnernamen ✅ eingeben?[/cyan]")
+                cleaned_assignment = new_assignment.strip()
+                try:
+                    validate_category_name(cleaned_assignment)
+                except ValueError as error:
+                    console.print(f"[red italic]{error}[/red italic]")
+                    continue
+                new_categories[file_extension] = cleaned_assignment
+                break
+            else:
+                console.print("[red italic]Keinen gültigen Ordnernamen eingegeben.[/red italic]")
+                continue
+    return new_categories
+
+
+
 
 
 def create_assignment_table(categories: dict, analysis_result: dict) -> Table:
@@ -91,7 +119,7 @@ def create_assignment_table(categories: dict, analysis_result: dict) -> Table:
 
     for file_extension in analysis_result:
         display_extension = file_extension or "ohne Endung"
-        assignment = new_categories.get(file_extension)
+        assignment = categories.get(file_extension)
 
         if assignment is None:
             assignment = "nicht zugeordnet"

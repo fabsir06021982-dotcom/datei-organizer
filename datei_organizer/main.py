@@ -36,20 +36,33 @@ def lade_konfiguration(dateipfad: Path):
             elif "ordner" not in d or "kategorien" not in d or not isinstance(d["ordner"], str) or not isinstance(d["kategorien"], dict):
                 raise ValueError("Erforderliche Struktur oder Datentypen stimmen nicht")
             for key, value in d["kategorien"].items():
-                if not isinstance(key, str) or (key != "" and not key.strip()) or not isinstance(value, str) or not value.strip():
-                    raise ValueError("JSON Datei enthält falsche Werte")  
+                if not isinstance(key, str) or (key != "" and not key.strip()):
+                    raise ValueError("JSON Datei enthält falsche Werte")
+                validate_category_name(value)
                 
-                windows_pfad = PureWindowsPath(value)
-                posix_pfad = PurePosixPath(value)
-                if windows_pfad.is_absolute() or posix_pfad.is_absolute() or ".." in windows_pfad.parts or ".." in posix_pfad.parts or windows_pfad.drive != "" or "/" in value or "\\" in value:
-                    raise ValueError("Pfadangabe enthalten")    
-                                           
+           
             if not d["kategorien"] or not d["ordner"].strip():
                 raise ValueError("In der JSON fehlen bestimmte Werte")
                 
             return d
     except FileNotFoundError as fehler:
         raise FileNotFoundError("Config Datei nicht gefunden") from fehler
+
+
+def validate_category_name(category: str) -> None:
+    """
+    Validate a category name and raise ValueError if it is invalid
+    """
+    if not isinstance(category, str) or not category.strip():
+        raise ValueError("Falscher Datentyp oder leerer String")
+    windows_path = PureWindowsPath(category)
+    posix_path = PurePosixPath(category)
+    if windows_path.is_absolute() or posix_path.is_absolute() or ".." in windows_path.parts or ".." in posix_path.parts or windows_path.drive != "" or "/" in category or "\\" in category:
+        raise ValueError("Pfadangabe enthalten")
+    if category == ".":
+        raise ValueError("Pfadangabe enthalten")   
+                                            
+    
 
 def speichere_konfiguration(konfigurationspfad: Path, konfiguration: dict) -> None:
     """
