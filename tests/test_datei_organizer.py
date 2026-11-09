@@ -24,7 +24,7 @@ def test_png():
 
 def test_unknown_extension():
     result = determine_category(Path("archiv.xyz"), categories)
-    assert result == "sonstiges"
+    assert result is None
 
 def test_move_file(source_folder):
 
