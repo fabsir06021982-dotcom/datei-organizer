@@ -427,6 +427,23 @@ def test_cli_sorting_uses_selected_configuration(configured_workspace):
     assert alternative_destination_path.read_text(encoding="utf-8") == "Innerhalb der Beispieldatei"
     assert not default_destination_path.exists()
 
+def test_cli_analysis_missing_selected_configuration(configured_workspace):
+    test_folder = configured_workspace / "testdateien"
+    configuration_path = test_folder / "config.json"
+    result = runner.invoke(app, ["analyse", "--config", str(configuration_path)], input="")
+    assert result.exit_code == 1
+    assert "Config Datei nicht gefunden" in result.output
+    assert "Neuen Ordner eingeben oder Enter ⏎ für den Standardordner" not in result.output
+    assert str(configuration_path) in result.output
+
+def test_cli_sorting_missing_selected_configuration(configured_workspace):
+    test_folder = configured_workspace / "testdateien"
+    configuration_path = test_folder / "config.json"
+    result = runner.invoke(app, ["sortiere", "--config", str(configuration_path)], input="")
+    assert result.exit_code == 1
+    assert "Config Datei nicht gefunden" in result.output
+    assert "Neuen Ordner eingeben oder Enter ⏎ für den Standardordner" not in result.output
+    assert str(configuration_path) in result.output
 
 
 

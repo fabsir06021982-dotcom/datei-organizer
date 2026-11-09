@@ -57,7 +57,14 @@ def analyze(configuration_path: Annotated[Path, typer.Option("--config")] = Path
     console.print("🔎 [bold underline green]Analyse[/bold underline green]")
     console.print("[cyan]Welchen Ordner willst du analysieren?[/cyan]")
 
-    configuration = load_configuration(configuration_path)
+    try:
+        configuration = load_configuration(configuration_path)
+    except FileNotFoundError as error:
+        console.print()
+        console.print(f"[red italic]{error}[/red italic]")
+        console.print(f"[red italic]{configuration_path} existiert nicht![/red italic]", soft_wrap=True)
+        raise typer.Exit(code=1)
+
     default_folder = Path(configuration["ordner"])
     selected_folder = select_folder(default_folder)
 
@@ -178,7 +185,15 @@ def sort_files(configuration_path: Annotated[Path, typer.Option("--config")] = P
     """Sort files using the configured category assignments."""
     console.print("🔎 [bold underline green]Sortiere[/bold underline green]")
     console.print("[cyan]Welchen Ordner willst du sortieren lassen?[/cyan]")
-    configuration = load_configuration(configuration_path)
+
+    try:
+        configuration = load_configuration(configuration_path)
+    except FileNotFoundError as error:
+        console.print()
+        console.print(f"[red italic]{error}[/red italic]")
+        console.print(f"[red italic]{configuration_path} existiert nicht![/red italic]", soft_wrap=True)
+        raise typer.Exit(code=1)
+
     default_folder = Path(configuration["ordner"])
     selected_folder = select_folder(default_folder)
     console.print(Panel(str(selected_folder), title="Ausgewählter Ordner"))
