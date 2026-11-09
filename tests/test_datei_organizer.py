@@ -305,6 +305,24 @@ def test_cli_sorting_files_success(tmp_path, monkeypatch):
     assert (working_directory / "texte" / "example.txt").read_text(encoding="utf-8") == "Hallo. Das ist eine Testdatei"
     assert (working_directory / "texte" / "example.txt").exists()
 
+def test_cli_analyze_empty_folder(tmp_path, monkeypatch):
+    working_directory = tmp_path / "arbeitsverzeichnis"
+    working_directory.mkdir()
+    configuration_path = working_directory / "config.json"
+    empty_folder = working_directory / "empty_folder"
+    empty_folder.mkdir()
+    sample_config = {"ordner": str(empty_folder), "kategorien": {".txt": "texte"}}
+    configuration_json = json.dumps(sample_config)
+    configuration_path.write_text(configuration_json, encoding="utf-8")
+    monkeypatch.chdir(working_directory)
+    result = runner.invoke(app, ["analyse"], input="\n")
+    assert result.exit_code == 0
+    assert "Im ausgewählten Ordner wurden keine Dateien gefunden." in result.output
+    assert "Möchtest du die Kategoriezuordnungen bearbeiten?" not in result.output
+    assert empty_folder.exists()
+    assert not list(empty_folder.iterdir())
+    
+
     
 
 

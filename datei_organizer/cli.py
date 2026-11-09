@@ -62,7 +62,8 @@ def analyze() -> None:
     selected_folder = select_folder(default_folder)
 
     console.print(Panel(str(selected_folder), title="Ausgewählter Ordner"))
-    analysis_result = analyze_files(selected_folder, configuration["kategorien"])
+    with console.status("Ordner wird analysiert..."):
+        analysis_result = analyze_files(selected_folder, configuration["kategorien"])
 
     if not analysis_result:
         console.print("[cyan]Im ausgewählten Ordner wurden keine Dateien gefunden.[/cyan]")
