@@ -322,7 +322,27 @@ def test_cli_analyze_empty_folder(tmp_path, monkeypatch):
     assert empty_folder.exists()
     assert not list(empty_folder.iterdir())
     
+def test_cli_analysis_declined_keeps_configuration_unchanged(tmp_path, monkeypatch):
+    working_directory = tmp_path / "arbeitsverzeichnis"
+    working_directory.mkdir()
+    test_folder = working_directory / "testdateien"
+    test_folder.mkdir()
+    txt_file_path = test_folder / "sample.txt"
+    txt_file_path.write_text("das ist eine testdatei", encoding="utf-8")
+    configuration_path = working_directory / "config.json"
+    sample_config = {"ordner": "testdateien", "kategorien": {".txt": "texte"}}
+    configuration_json = json.dumps(sample_config)
+    configuration_path.write_text(configuration_json, encoding="utf-8")
+    monkeypatch.chdir(working_directory)
+    result = runner.invoke(app, ["analyse"], input="\nn\n")
+    assert result.exit_code == 0
+    assert "Kategoriezuordnungen werden nicht bearbeitet. Ende." in result.output
+    assert txt_file_path.exists()
+    assert "Analyseergebnis" in result.output
+    assert txt_file_path.read_text(encoding="utf-8") == "das ist eine testdatei"
 
+
+    
     
 
 
