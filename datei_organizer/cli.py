@@ -7,7 +7,7 @@ from rich.panel import Panel
 from rich.prompt import Confirm, Prompt
 from rich.table import Table
 
-from .main import analysiere_dateien, lade_konfiguration, prozent_dateien, validate_category_name
+from .main import analyze_files, load_configuration, calculate_percentages, validate_category_name, save_configuration
 
 
 app = typer.Typer()
@@ -34,7 +34,7 @@ def analyze() -> None:
     console.print("[cyan]Welchen Ordner willst du analysieren?[/cyan]")
 
     configuration_path = Path("config.json")
-    configuration = lade_konfiguration(configuration_path)
+    configuration = load_configuration(configuration_path)
     default_folder = Path(configuration["ordner"]).resolve()
 
     console.print(Panel(str(default_folder), title="Standardordner aus der Konfiguration"))
@@ -51,13 +51,13 @@ def analyze() -> None:
         raise typer.Abort()
 
     console.print(Panel(str(selected_folder), title="Ausgewählter Ordner"))
-    analysis_result = analysiere_dateien(selected_folder, configuration["kategorien"])
+    analysis_result = analyze_files(selected_folder, configuration["kategorien"])
 
     if not analysis_result:
         console.print("[cyan]Im ausgewählten Ordner wurden keine Dateien gefunden.[/cyan]")
         return
 
-    percentages = prozent_dateien(analysis_result)
+    percentages = calculate_percentages(analysis_result)
     console.print(create_analysis_table(analysis_result, percentages))
 
     if not Confirm.ask("Möchtest du die Kategoriezuordnungen bearbeiten?"):
@@ -67,11 +67,20 @@ def analyze() -> None:
     console.print()
     console.print("[bold underline magenta]📁 Kategoriezuordnungen[/bold underline magenta]")
     console.print()
-    edit_assignments(configuration["kategorien"], analysis_result)
+    new_assignments = edit_assignments(configuration["kategorien"], analysis_result)
+    console.print("[bold underline green]Neue Zuordnungstabelle[/bold underline green]")
+    console.print(create_assignment_table(new_assignments, analysis_result))
+    save_assignment = Confirm.ask("[cyan]Sollen die neuen Zuordnungen dauerhaft gespeichert werden?[/cyan]")
+    if not save_assignment:
+        console.print("[cyan]Neue Zuordnungen werden nicht gespeichert. Abbruch.[/cyan]")
+        return
+    configuration["kategorien"] = new_assignments
+    save_configuration(configuration_path, configuration)
+    console.print("[green]Erfolgreich gespeichert ✅.[/green]")
 
 
 def edit_assignments(categories: dict, analysis_result: dict) -> dict:
-    """Prepare category assignments for editing."""
+    """Edit a copy of the category assignments and return the draft."""
     # Work on a draft so changes can later be discarded.
     new_categories = categories.copy()
     console.print(create_assignment_table(new_categories, analysis_result))
@@ -93,7 +102,7 @@ def edit_assignments(categories: dict, analysis_result: dict) -> dict:
             console.print("[cyan]Zuordnung erfolgreich gelöscht.[/cyan]")
         else:
             for _ in range(3):
-                new_assignment = Prompt.ask(f"[cyan]Bitte einen gültigen Ordnernamen ✅ eingeben?[/cyan]")
+                new_assignment = Prompt.ask("[cyan]Bitte einen gültigen Ordnernamen ✅ eingeben?[/cyan]")
                 cleaned_assignment = new_assignment.strip()
                 try:
                     validate_category_name(cleaned_assignment)
@@ -108,9 +117,6 @@ def edit_assignments(categories: dict, analysis_result: dict) -> dict:
     return new_categories
 
 
-
-
-
 def create_assignment_table(categories: dict, analysis_result: dict) -> Table:
     """Build and return a table showing file extensions and their category assignments."""
     table = Table(box=box.SQUARE, title="Kategoriezuordnung")
@@ -123,11 +129,10 @@ def create_assignment_table(categories: dict, analysis_result: dict) -> Table:
 
         if assignment is None:
             assignment = "nicht zugeordnet"
-        
+
         table.add_row(display_extension, assignment)
 
     return table
-
 
 
 def create_analysis_table(analysis_result: dict, percentages: dict) -> Table:

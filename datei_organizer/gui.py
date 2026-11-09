@@ -2,102 +2,98 @@ import tkinter as tk
 from tkinter import ttk
 from tkinter import filedialog
 from pathlib import Path
-from .main import lade_konfiguration
+from .main import load_configuration
 
 class OrganizerGUI():
-    def __init__(self, root, konfiguration):
+    def __init__(self, root, configuration):
         self.root = root
-        self.konfiguration = konfiguration
-        self.ausgewaehlter_ordner = None
-        self.styletheme_aendern()
+        self.configuration = configuration
+        self.selected_folder = None
+        self.configure_theme()
         self.root.geometry("600x600")
         self.root.resizable(True, True)
         self.root.title("Advanced File Organizer")
-        self.erstelle_widgets()
-        
-        
+        self.create_widgets()
 
-    
-    def erstelle_widgets(self):
-        self.label = ttk.Label(self.root, text="Willkommen beim Advanced File Organizer") 
-        self.button = ttk.Button(self.root, text="Durchsuchen", command=self.waehle_ordner)
-        self.label_ordner = ttk.Label(self.root, text="Kein Ordner ausgewählt")
-        self.button_analyse = ttk.Button(self.root, text="Analyse", command=self.analysiere_ordner)
+
+    def create_widgets(self):
+        self.label = ttk.Label(self.root, text="Willkommen beim Advanced File Organizer")
+        self.button = ttk.Button(self.root, text="Durchsuchen", command=self.select_folder)
+        self.folder_label = ttk.Label(self.root, text="Kein Ordner ausgewählt")
+        self.analyze_button = ttk.Button(self.root, text="Analyse", command=self.analyze_folder)
 
         self.label.grid(row=0, column=0)
         self.button.grid(row=1, column=0)
-        self.label_ordner.grid(row=2, column=0)
-        self.button_analyse.grid(row=4, column=0)
-    
-    def aendere_begruessung(self):
+        self.folder_label.grid(row=2, column=0)
+        self.analyze_button.grid(row=4, column=0)
+
+    def update_greeting(self):
         self.label.config(text="Deine Dateien einfach organisieren!")
         self.button.config(text="Erledigt")
 
-    def waehle_ordner(self):
-        auswahl = filedialog.askdirectory(parent=self.root, initialdir=self.ermittle_arbeitsverzeichnis())
-        if not auswahl:
-            self.zeige_status(self.label_ordner, "Kein Ordner ausgewählt")
-            self.ausgewaehlter_ordner = None
-            
-        else:
-            
-            self.ausgewaehlter_ordner = Path(auswahl)
-            self.zeige_status(self.label_ordner, self.ausgewaehlter_ordner)
+    def select_folder(self):
+        """Select a folder and update the displayed selection."""
+        selection = filedialog.askdirectory(parent=self.root, initialdir=self.get_initial_directory())
+        if not selection:
+            self.show_status(self.folder_label, "Kein Ordner ausgewählt")
+            self.selected_folder = None
 
-        
-    def ermittle_arbeitsverzeichnis(self) -> Path:
-        arbeitsverzeichnis = Path(self.konfiguration["ordner"])
-        if arbeitsverzeichnis.is_dir():
-            return arbeitsverzeichnis
+        else:
+
+            self.selected_folder = Path(selection)
+            self.show_status(self.folder_label, self.selected_folder)
+
+
+    def get_initial_directory(self) -> Path:
+        """Use the configured folder if available, otherwise use the home directory."""
+        working_directory = Path(self.configuration["ordner"])
+        if working_directory.is_dir():
+            return working_directory
         else:
             return Path.home()
 
-    def analysiere_ordner(self):
-        if self.ausgewaehlter_ordner is None:
-            self.zeige_fehler(self.label_ordner, "Bitte zuerst einen Ordner auswählen!")
-            return 
+    def analyze_folder(self):
+        """Display the selection status before further GUI analysis is implemented."""
+        if self.selected_folder is None:
+            self.show_error(self.folder_label, "Bitte zuerst einen Ordner auswählen!")
+            return
         else:
-            self.zeige_status(self.label_ordner, self.ausgewaehlter_ordner)
-    
-    def styletheme_aendern(self):
+            self.show_status(self.folder_label, self.selected_folder)
+
+    def configure_theme(self):
+        """Configure the theme and styles used for status messages."""
         self.style = ttk.Style()
         self.style.theme_use("clam")
-        self.style.configure("Fehler.TLabel", foreground="red")
+        self.style.configure("Error.TLabel", foreground="red")
         self.style.configure("Status.TLabel", foreground="black")
-        self.style.configure("Warnung.TLabel", foreground="orange")
-    
-   
-    def zeige_fehler(self, label, nachricht: str):
-        label.configure(text=nachricht)
-        label.configure(style="Fehler.TLabel")
-    
-    def zeige_status(self, label, nachricht: str):
-        label.config(text=nachricht)
+        self.style.configure("Warning.TLabel", foreground="orange")
+
+
+    def show_error(self, label, message: str):
+        label.configure(text=message)
+        label.configure(style="Error.TLabel")
+
+    def show_status(self, label, message: str):
+        label.config(text=message)
         label.configure(style="Status.TLabel")
-    
-    def zeige_warnung(self, label, nachricht: str):
-        label.configure(text=nachricht)
-        label.configure(style="Warnung.TLabel")
 
-    
-    def extrahiere_kategorien(self) -> set:
-        kategorien = self.konfiguration["kategorien"]
+    def show_warning(self, label, message: str):
+        label.configure(text=message)
+        label.configure(style="Warning.TLabel")
 
 
-
-
-
-
+    def extract_categories(self) -> set:
+        """Read the configured categories for the unfinished GUI category selector."""
+        categories = self.configuration["kategorien"]
 
 
 if __name__ == "__main__":
 
-    konfigurationspfad = Path("config.json")
-    konfiguration = lade_konfiguration(konfigurationspfad)
+    configuration_path = Path("config.json")
+    configuration = load_configuration(configuration_path)
 
     root = tk.Tk()
-    organizergui = OrganizerGUI(root, konfiguration)
-
+    organizer_gui = OrganizerGUI(root, configuration)
 
 
     root.mainloop()
