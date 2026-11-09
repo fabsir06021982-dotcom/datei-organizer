@@ -400,6 +400,26 @@ def test_cli_analysis_saves_removed_assignment(tmp_path, monkeypatch):
     assert configuration == {"ordner": "testdateien", "kategorien": {}}
     assert test_file_path.exists()
 
+def test_cli_analysis_retries_invalid_category(tmp_path, monkeypatch):
+    working_directory = tmp_path / "arbeitsverzeichnis"
+    working_directory.mkdir()
+    test_folder = working_directory / "testdateien"
+    test_folder.mkdir()
+    xyz_file_path = test_folder / "test.xyz"
+    xyz_file_path.write_text("Testdatei", encoding="utf-8")
+    configuration_path = working_directory / "config.json"
+    sample_config = {"ordner": "testdateien", "kategorien": {".txt": "texte"}}
+    configuration_json = json.dumps(sample_config)
+    configuration_path.write_text(configuration_json, encoding="utf-8")
+    monkeypatch.chdir(working_directory)
+    result = runner.invoke(app, ["analyse"], input="\ny\ny\nn\n../archive\narchive\ny\n")
+    configuration = load_configuration(configuration_path)
+    assert "Erfolgreich gespeichert" in result.output
+    assert result.exit_code == 0
+    assert "Pfadangabe enthalten" in result.output
+    assert configuration == {"ordner": "testdateien", "kategorien": {".txt": "texte", ".xyz": "archive"}}
+    assert xyz_file_path.exists()
+
     
     
 
