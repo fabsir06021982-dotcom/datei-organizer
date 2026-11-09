@@ -420,6 +420,25 @@ def test_cli_analysis_retries_invalid_category(tmp_path, monkeypatch):
     assert configuration == {"ordner": "testdateien", "kategorien": {".txt": "texte", ".xyz": "archive"}}
     assert xyz_file_path.exists()
 
+def test_cli_analysis_keeps_assignment_after_three_invalid_attempts(tmp_path, monkeypatch):
+    working_directory = tmp_path / "arbeitsverzeichnis"
+    working_directory.mkdir()
+    test_folder = working_directory / "testdateien"
+    test_folder.mkdir()
+    txt_file_path = test_folder / "test.txt"
+    txt_file_path.write_text("Testdatei", encoding="utf-8")
+    configuration_path = working_directory / "config.json"
+    sample_config = {"ordner": "testdateien", "kategorien": {".txt": "texte"}}
+    configuration_json = json.dumps(sample_config)
+    configuration_path.write_text(configuration_json, encoding="utf-8")
+    monkeypatch.chdir(working_directory)
+    result = runner.invoke(app, ["analyse"], input="\ny\ny\nn\n../texte\nC:\\texte\n.\ny\n")
+    configuration = load_configuration(configuration_path)
+    assert "Keinen gültigen Ordnernamen eingegeben." in result.output
+    assert "Pfadangabe enthalten" in result.output
+    assert result.exit_code == 0
+    assert configuration == sample_config
+    assert txt_file_path.exists()
     
     
 
