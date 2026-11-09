@@ -379,8 +379,6 @@ def test_cli_analysis_declined_save_keeps_configuration_unchanged(tmp_path, monk
     assert "Neue Zuordnungen werden nicht gespeichert. Abbruch." in result.output
     configuration = load_configuration(configuration_path)
     assert configuration == sample_config
-    assert configuration["kategorien"][".txt"] == "texte"
-    assert configuration["ordner"] == "testdateien"
     assert xyz_file_path.exists()
 
     
