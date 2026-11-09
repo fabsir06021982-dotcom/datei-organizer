@@ -185,11 +185,12 @@ def sort_files() -> None:
     console.print()    
     console.print("[italic magenta]Dateien werden anhand der gespeicherten Kategorien verschoben![/italic magenta]")
     console.print("[italic magenta]Nur Dateien im direkt ausgewählten Ordner werden sortiert[/italic magenta]")
+    console.print() 
     confirm_sorting = Confirm.ask("[bold underline yellow]Bitte bestätigen Sie den Vorgang.[/bold underline yellow]")
     if not confirm_sorting:
         console.print("[cyan]Sortiervorgang abgebrochen.[/cyan]")
         return    
-    organize_files(selected_folder, configuration("kategorien"))
+    organize_files(selected_folder, configuration["kategorien"])
     
 
 
