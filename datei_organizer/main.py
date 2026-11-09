@@ -173,11 +173,11 @@ if __name__ == "__main__":
     categories = configuration["kategorien"]
     folder = Path(configuration["ordner"])
 
-    # try:
-    #     organize_files(folder, categories)
-    # except FileNotFoundError as error:
-    #     print(f"Arbeitsverzeichnis nicht gefunden: {error}")
-    #     raise SystemExit(1)
+    try:
+        organize_files(folder, categories)
+    except FileNotFoundError as error:
+        print(f"Arbeitsverzeichnis nicht gefunden: {error}")
+        raise SystemExit(1)
     analysis_result = analyze_files(folder, categories)
     percentages = calculate_percentages(analysis_result)
     display_analysis(analysis_result, percentages)

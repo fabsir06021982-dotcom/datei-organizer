@@ -7,7 +7,7 @@ from rich.panel import Panel
 from rich.prompt import Confirm, Prompt
 from rich.table import Table
 
-from .main import analyze_files, load_configuration, calculate_percentages, validate_category_name, save_configuration
+from .main import analyze_files, load_configuration, calculate_percentages, validate_category_name, save_configuration, organize_files
 
 
 app = typer.Typer()
@@ -27,6 +27,9 @@ def main(ctx: typer.Context) -> None:
         console.print("[red italic]Kein Befehl übergeben. Beende...[/red italic] ➜🚪")
 
 def select_folder(default_folder: Path) -> Path:
+    """
+    choose and return the folder through user input with simple protection from incorrect input
+    """
     default_folder = default_folder.resolve()
 
     console.print(Panel(str(default_folder), title="Standardordner aus der Konfiguration"))
@@ -56,10 +59,10 @@ def analyze() -> None:
     configuration_path = Path("config.json")
     configuration = load_configuration(configuration_path)
     default_folder = Path(configuration["ordner"])
-    new_folder_path = select_folder(default_folder)
+    selected_folder = select_folder(default_folder)
 
-    console.print(Panel(str(new_folder_path), title="Ausgewählter Ordner"))
-    analysis_result = analyze_files(new_folder_path, configuration["kategorien"])
+    console.print(Panel(str(selected_folder), title="Ausgewählter Ordner"))
+    analysis_result = analyze_files(selected_folder, configuration["kategorien"])
 
     if not analysis_result:
         console.print("[cyan]Im ausgewählten Ordner wurden keine Dateien gefunden.[/cyan]")
@@ -172,7 +175,22 @@ def create_analysis_table(analysis_result: dict, percentages: dict) -> Table:
 @app.command("sortiere")
 def sort_files() -> None:
     """Sort files using the configured category assignments."""
-    console.print("Sortiere")
+    console.print("🔎 [bold underline green]Sortiere[/bold underline green]")
+    console.print("[cyan]Welchen Ordner willst du sortieren lassen?[/cyan]")
+    configuration_path = Path("config.json")
+    configuration = load_configuration(configuration_path)
+    default_folder = Path(configuration["ordner"])
+    selected_folder = select_folder(default_folder)
+    console.print(Panel(str(selected_folder), title="Ausgewählter Ordner"))
+    console.print()    
+    console.print("[italic magenta]Dateien werden anhand der gespeicherten Kategorien verschoben![/italic magenta]")
+    console.print("[italic magenta]Nur Dateien im direkt ausgewählten Ordner werden sortiert[/italic magenta]")
+    confirm_sorting = Confirm.ask("[bold underline yellow]Bitte bestätigen Sie den Vorgang.[/bold underline yellow]")
+    if not confirm_sorting:
+        console.print("[cyan]Sortiervorgang abgebrochen.[/cyan]")
+        return    
+    organize_files(selected_folder, configuration("kategorien"))
+    
 
 
 if __name__ == "__main__":
