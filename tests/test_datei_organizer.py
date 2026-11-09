@@ -80,7 +80,7 @@ def test_move_failure(source_folder, caplog):
     file_path = source_folder / "fehler.txt"
     file_path.write_text("fehler", encoding="utf-8")
 
-    with patch("main.shutil.move", side_effect=OSError("Simulierter Fehler")):
+    with patch("datei_organizer.main.shutil.move", side_effect=OSError("Simulierter Fehler")):
         organize_files(source_folder, categories)
 
 
@@ -222,7 +222,7 @@ def test_log_move_error(monkeypatch, caplog, tmp_path):
 def test_cli_missing_configuration(tmp_path):
     folder = tmp_path / "arbeitsverzeichnis"
     folder.mkdir()
-    main_file = Path.cwd() / "main.py"
+    main_file = Path.cwd() / "datei_organizer" / "main.py"
 
     output = subprocess.run(["python", str(main_file)], cwd=folder, capture_output=True, text=True)
     assert output.returncode == 1
@@ -233,7 +233,7 @@ def test_cli_invalid_json(tmp_path):
     folder.mkdir()
     configuration_path = folder / "config.json"
     configuration_path.write_text("XYZ", encoding="utf-8")
-    main_file = Path.cwd() / "main.py"
+    main_file = Path.cwd() / "datei_organizer" / "main.py"
 
     output = subprocess.run(["python", str(main_file)], cwd=folder, capture_output=True, text=True)
     assert output.returncode == 1
@@ -248,7 +248,7 @@ def test_cli_invalid_configuration_values(tmp_path):
     configuration_json = json.dumps(sample_configuration)
     configuration_path.write_text(configuration_json, encoding="utf-8")
 
-    main_file = Path.cwd() / "main.py"
+    main_file = Path.cwd() / "datei_organizer" / "main.py"
     output = subprocess.run(["python", str(main_file)], cwd=working_directory, capture_output=True, text=True)
     assert output.returncode == 1
     assert "Werte in JSON nicht korrekt" in output.stdout
@@ -262,7 +262,7 @@ def test_cli_missing_working_directory(tmp_path):
     configuration_json = json.dumps(sample_configuration)
     configuration_path.write_text(configuration_json, encoding="utf-8")
 
-    main_file = Path.cwd() / "main.py"
+    main_file = Path.cwd() / "datei_organizer" / "main.py"
     output = subprocess.run(["python", str(main_file)], cwd=working_directory, capture_output=True, text=True)
     assert output.returncode == 1
     assert "Arbeitsverzeichnis nicht gefunden" in output.stdout
