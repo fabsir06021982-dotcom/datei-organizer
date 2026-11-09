@@ -1,7 +1,6 @@
 {
     "ordner": "testdateien",
     "kategorien": {
-        ".txt": "dokumente",
         ".png": "bilder",
         ".jpg": "bilder",
         ".pdf": "dokumente",

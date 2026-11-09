@@ -381,6 +381,25 @@ def test_cli_analysis_declined_save_keeps_configuration_unchanged(tmp_path, monk
     assert configuration == sample_config
     assert xyz_file_path.exists()
 
+def test_cli_analysis_saves_removed_assignment(tmp_path, monkeypatch):
+    working_directory = tmp_path / "arbeitsverzeichnis"
+    working_directory.mkdir()
+    test_folder = working_directory / "testdateien"
+    test_folder.mkdir()
+    test_file_path = test_folder / "test.txt"
+    test_file_path.write_text("Testdatei", encoding="utf-8")
+    configuration_path = working_directory / "config.json"
+    sample_config = {"ordner": "testdateien", "kategorien": {".txt": "texte"}}
+    configuration_json = json.dumps(sample_config)
+    configuration_path.write_text(configuration_json, encoding="utf-8")
+    monkeypatch.chdir(working_directory)
+    result = runner.invoke(app, ["analyse"], input="\ny\ny\ny\ny\n")
+    configuration = load_configuration(configuration_path)
+    assert "Erfolgreich gespeichert" in result.output
+    assert result.exit_code == 0
+    assert configuration == {"ordner": "testdateien", "kategorien": {}}
+    assert test_file_path.exists()
+
     
     
 
