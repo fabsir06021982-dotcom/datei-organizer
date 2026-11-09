@@ -362,7 +362,26 @@ def test_cli_analysis_saves_new_assignment(tmp_path, monkeypatch):
     assert configuration["ordner"] == "testdateien"
     assert xyz_file_path.exists()
 
-
+def test_cli_analysis_declined_save_keeps_configuration_unchanged(tmp_path, monkeypatch):
+    working_directory = tmp_path / "arbeitsverzeichnis"
+    working_directory.mkdir()
+    test_folder = working_directory / "testdateien"
+    test_folder.mkdir()
+    xyz_file_path = test_folder / "sample.xyz"
+    xyz_file_path.touch()
+    configuration_path = working_directory / "config.json"
+    sample_config = {"ordner": "testdateien", "kategorien": {".txt": "texte"}}
+    configuration_json = json.dumps(sample_config)
+    configuration_path.write_text(configuration_json, encoding="utf-8")
+    monkeypatch.chdir(working_directory)
+    result = runner.invoke(app, ["analyse"], input="\ny\ny\nn\narchive\nn\n")
+    assert result.exit_code == 0
+    assert "Neue Zuordnungen werden nicht gespeichert. Abbruch." in result.output
+    configuration = load_configuration(configuration_path)
+    assert configuration == sample_config
+    assert configuration["kategorien"][".txt"] == "texte"
+    assert configuration["ordner"] == "testdateien"
+    assert xyz_file_path.exists()
 
     
     
