@@ -1,6 +1,7 @@
+from typing import Annotated
 from pathlib import Path
-
 import typer
+
 from rich import box
 from rich.console import Console
 from rich.panel import Panel
@@ -51,12 +52,11 @@ def select_folder(default_folder: Path) -> Path:
 
 
 @app.command("analyse")
-def analyze() -> None:
+def analyze(configuration_path: Annotated[Path, typer.Option("--config")] = Path("config.json")) -> None:
     """Analyze a folder."""
     console.print("🔎 [bold underline green]Analyse[/bold underline green]")
     console.print("[cyan]Welchen Ordner willst du analysieren?[/cyan]")
 
-    configuration_path = Path("config.json")
     configuration = load_configuration(configuration_path)
     default_folder = Path(configuration["ordner"])
     selected_folder = select_folder(default_folder)
@@ -174,11 +174,10 @@ def create_analysis_table(analysis_result: dict, percentages: dict) -> Table:
 
 
 @app.command("sortiere")
-def sort_files() -> None:
+def sort_files(configuration_path: Annotated[Path, typer.Option("--config")] = Path("config.json")) -> None:
     """Sort files using the configured category assignments."""
     console.print("🔎 [bold underline green]Sortiere[/bold underline green]")
     console.print("[cyan]Welchen Ordner willst du sortieren lassen?[/cyan]")
-    configuration_path = Path("config.json")
     configuration = load_configuration(configuration_path)
     default_folder = Path(configuration["ordner"])
     selected_folder = select_folder(default_folder)

@@ -396,7 +396,38 @@ def configured_workspace(tmp_path, monkeypatch) -> Path:
     monkeypatch.chdir(working_directory)
     return working_directory
 
-    
+def test_cli_analysis_uses_selected_configuration(configured_workspace):
+    test_folder = configured_workspace / "testdateien"
+    test_file_path = test_folder / "example.txt"
+    test_file_path.write_text("Beispieldatei", encoding="utf-8")
+    alternative_configuration_path = configured_workspace / "alternative_config.json" 
+    empty_folder = configured_workspace / "empty"
+    empty_folder.mkdir()
+    alternative_configuration = {"ordner": "empty", "kategorien" : {".txt": "texte"}}
+    configuration_json = json.dumps(alternative_configuration)
+    alternative_configuration_path.write_text(configuration_json, encoding="utf-8")
+    result = runner.invoke(app, ["analyse", "--config", str(alternative_configuration_path)], input="\n")
+    assert result.exit_code == 0
+    assert "Im ausgewählten Ordner wurden keine Dateien gefunden." in result.output
+
+def test_cli_sorting_uses_selected_configuration(configured_workspace):
+    test_folder = configured_workspace / "testdateien"
+    txt_file_path = test_folder / "beispiel.txt"
+    txt_file_path.write_text("Innerhalb der Beispieldatei", encoding="utf-8")
+    alternative_configuration_path = test_folder / "alternative_config.json"
+    alternative_configuration = {"ordner": "testdateien", "kategorien": {".txt": "archive"}}
+    alternative_configuration_json = json.dumps(alternative_configuration)
+    alternative_configuration_path.write_text(alternative_configuration_json, encoding="utf-8")
+    default_destination_path = test_folder / "texte" / "beispiel.txt"
+    alternative_destination_path = test_folder / "archive" / "beispiel.txt"
+    result = runner.invoke(app, ["sortiere", "--config", str(alternative_configuration_path)], input="\ny\n")
+    assert result.exit_code == 0
+    assert not txt_file_path.exists()
+    assert alternative_destination_path.is_file()
+    assert alternative_destination_path.read_text(encoding="utf-8") == "Innerhalb der Beispieldatei"
+    assert not default_destination_path.exists()
+
+
 
 
 
