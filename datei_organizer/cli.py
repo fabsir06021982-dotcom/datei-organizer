@@ -26,16 +26,8 @@ def main(ctx: typer.Context) -> None:
     if ctx.invoked_subcommand is None:
         console.print("[red italic]Kein Befehl übergeben. Beende...[/red italic] ➜🚪")
 
-
-@app.command("analyse")
-def analyze() -> None:
-    """Analyze a folder."""
-    console.print("🔎 [bold underline green]Analyse[/bold underline green]")
-    console.print("[cyan]Welchen Ordner willst du analysieren?[/cyan]")
-
-    configuration_path = Path("config.json")
-    configuration = load_configuration(configuration_path)
-    default_folder = Path(configuration["ordner"]).resolve()
+def select_folder(default_folder: Path) -> Path:
+    default_folder = default_folder.resolve()
 
     console.print(Panel(str(default_folder), title="Standardordner aus der Konfiguration"))
     folder_input = Prompt.ask("[cyan]Neuen Ordner eingeben oder Enter ⏎ für den Standardordner[/cyan]")
@@ -50,8 +42,24 @@ def analyze() -> None:
         console.print("[red italic]Der ausgewählte Ordner ist ungültig![/red italic]")
         raise typer.Abort()
 
-    console.print(Panel(str(selected_folder), title="Ausgewählter Ordner"))
-    analysis_result = analyze_files(selected_folder, configuration["kategorien"])
+    return selected_folder
+
+
+
+
+@app.command("analyse")
+def analyze() -> None:
+    """Analyze a folder."""
+    console.print("🔎 [bold underline green]Analyse[/bold underline green]")
+    console.print("[cyan]Welchen Ordner willst du analysieren?[/cyan]")
+
+    configuration_path = Path("config.json")
+    configuration = load_configuration(configuration_path)
+    default_folder = Path(configuration["ordner"])
+    new_folder_path = select_folder(default_folder)
+
+    console.print(Panel(str(new_folder_path), title="Ausgewählter Ordner"))
+    analysis_result = analyze_files(new_folder_path, configuration["kategorien"])
 
     if not analysis_result:
         console.print("[cyan]Im ausgewählten Ordner wurden keine Dateien gefunden.[/cyan]")
@@ -68,15 +76,21 @@ def analyze() -> None:
     console.print("[bold underline magenta]📁 Kategoriezuordnungen[/bold underline magenta]")
     console.print()
     new_assignments = edit_assignments(configuration["kategorien"], analysis_result)
+    console.print()
+    console.print()
     console.print("[bold underline green]Neue Zuordnungstabelle[/bold underline green]")
+    console.print()
     console.print(create_assignment_table(new_assignments, analysis_result))
+    console.print()
+    console.print()
     save_assignment = Confirm.ask("[cyan]Sollen die neuen Zuordnungen dauerhaft gespeichert werden?[/cyan]")
+    console.print()
     if not save_assignment:
         console.print("[cyan]Neue Zuordnungen werden nicht gespeichert. Abbruch.[/cyan]")
         return
     configuration["kategorien"] = new_assignments
     save_configuration(configuration_path, configuration)
-    console.print("[green]Erfolgreich gespeichert ✅.[/green]")
+    console.print("[green]✅ Erfolgreich gespeichert.[/green]")
 
 
 def edit_assignments(categories: dict, analysis_result: dict) -> dict:
@@ -90,10 +104,10 @@ def edit_assignments(categories: dict, analysis_result: dict) -> dict:
         if assignment is None:
             assignment = "nicht zugeordnet"
 
-        change_assignment = Confirm.ask(f"[cyan]Möchten Sie die aktuelle Zuordnung von Ordner 📁 {assignment} zu Dateiendung📄 {display_extension} ändern?[/cyan]")
+        change_assignment = Confirm.ask(f"[cyan]📄 -> 📁 Möchten Sie die aktuelle Zuordnung von Dateiendung {display_extension} zu Ordner {assignment} ändern?[/cyan]")
         if not change_assignment:
             continue
-        delete_assignment = Confirm.ask("[cyan]Soll die Zuordnung gelöscht ✂️ werden?[/cyan]")
+        delete_assignment = Confirm.ask("[cyan]✂️ Soll die Zuordnung gelöscht werden?[/cyan]")
         if delete_assignment:
             delete_output = new_categories.pop(file_extension, None)
             if delete_output is None:
@@ -102,7 +116,7 @@ def edit_assignments(categories: dict, analysis_result: dict) -> dict:
             console.print("[cyan]Zuordnung erfolgreich gelöscht.[/cyan]")
         else:
             for _ in range(3):
-                new_assignment = Prompt.ask("[cyan]Bitte einen gültigen Ordnernamen ✅ eingeben?[/cyan]")
+                new_assignment = Prompt.ask("[cyan]✅ Bitte einen gültigen Ordnernamen eingeben?[/cyan]")
                 cleaned_assignment = new_assignment.strip()
                 try:
                     validate_category_name(cleaned_assignment)
