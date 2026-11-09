@@ -445,6 +445,41 @@ def test_cli_sorting_missing_selected_configuration(configured_workspace):
     assert "Neuen Ordner eingeben oder Enter ⏎ für den Standardordner" not in result.output
     assert str(configuration_path) in result.output
 
+def test_cli_analysis_invalid_json_reports_error(configured_workspace):
+    test_folder = configured_workspace / "testdateien"
+    alternative_configuration_path = test_folder / "alternative_config.json"
+    alternative_configuration = "{"
+    alternative_configuration_path.write_text(alternative_configuration, encoding="utf-8")
+    result = runner.invoke(app, ["analyse", "--config", str(alternative_configuration_path)], input="")
+    assert result.exit_code == 1
+    assert "Ungültiges JSON" in result.output
+    assert str(alternative_configuration_path) in result.output
+    assert "Neuen Ordner eingeben" not in result.output
+
+def test_cli_analysis_invalid_configuration_reports_error(configured_workspace):
+    test_folder = configured_workspace / "testdateien"
+    alternative_configuration_path = test_folder / "alternative_config.json"
+    alternative_configuration = {"ordner": "testdateien", "kategorien": []}
+    alternative_configuration_json = json.dumps(alternative_configuration)
+    alternative_configuration_path.write_text(alternative_configuration_json, encoding="utf-8")
+    result = runner.invoke(app, ["analyse", "--config", str(alternative_configuration_path)], input="")
+    assert result.exit_code == 1
+    assert "Ungültige Konfiguration" in result.output
+    assert str(alternative_configuration_path) in result.output
+    assert "Neuen Ordner eingeben oder Enter ⏎ für den Standardordner" not in result.output
+
+def test_cli_analysis_permission_denied_reports_error(configured_workspace, monkeypatch):
+    configuration_path = configured_workspace / "config.json"
+
+    def deny_configuration_access(configuration_path):
+        raise PermissionError
+    monkeypatch.setattr("datei_organizer.cli.load_configuration", deny_configuration_access)
+    result = runner.invoke(app, ["analyse", "--config", str(configuration_path)], input="")
+    assert result.exit_code == 1
+    assert "Zugriff verweigert" in result.output
+    assert str(configuration_path) in result.output
+    assert "Neuen Ordner eingeben" not in result.output
+
 
 
 

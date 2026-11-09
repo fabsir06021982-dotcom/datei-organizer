@@ -7,6 +7,7 @@ from rich.console import Console
 from rich.panel import Panel
 from rich.prompt import Confirm, Prompt
 from rich.table import Table
+import json
 
 from .main import analyze_files, load_configuration, calculate_percentages, validate_category_name, save_configuration, organize_files
 
@@ -57,13 +58,7 @@ def analyze(configuration_path: Annotated[Path, typer.Option("--config")] = Path
     console.print("🔎 [bold underline green]Analyse[/bold underline green]")
     console.print("[cyan]Welchen Ordner willst du analysieren?[/cyan]")
 
-    try:
-        configuration = load_configuration(configuration_path)
-    except FileNotFoundError as error:
-        console.print()
-        console.print(f"[red italic]{error}[/red italic]")
-        console.print(f"[red italic]{configuration_path} existiert nicht![/red italic]", soft_wrap=True)
-        raise typer.Exit(code=1)
+    configuration = load_cli_configuration(configuration_path)
 
     default_folder = Path(configuration["ordner"])
     selected_folder = select_folder(default_folder)
@@ -186,13 +181,7 @@ def sort_files(configuration_path: Annotated[Path, typer.Option("--config")] = P
     console.print("🔎 [bold underline green]Sortiere[/bold underline green]")
     console.print("[cyan]Welchen Ordner willst du sortieren lassen?[/cyan]")
 
-    try:
-        configuration = load_configuration(configuration_path)
-    except FileNotFoundError as error:
-        console.print()
-        console.print(f"[red italic]{error}[/red italic]")
-        console.print(f"[red italic]{configuration_path} existiert nicht![/red italic]", soft_wrap=True)
-        raise typer.Exit(code=1)
+    configuration = load_cli_configuration(configuration_path)
 
     default_folder = Path(configuration["ordner"])
     selected_folder = select_folder(default_folder)
@@ -207,7 +196,28 @@ def sort_files(configuration_path: Annotated[Path, typer.Option("--config")] = P
         return    
     organize_files(selected_folder, configuration["kategorien"])
     console.print("[cyan]Sortierdurchlauf beendet.[/cyan]")
-    
+
+def load_cli_configuration(configuration_path: Path) -> dict:
+    """Load configuration and report CLI errors."""
+    try:
+        return load_configuration(configuration_path)
+    except FileNotFoundError as error:
+        console.print()
+        console.print(f"[red italic]{error}[/red italic]")
+        console.print(f"[red italic]{configuration_path} existiert nicht![/red italic]", soft_wrap=True)
+        raise typer.Exit(code=1)
+    except json.JSONDecodeError as error:
+        console.print(f"[red italic]{error}[/red italic]")
+        console.print(f"[red italic]Ungültiges JSON: {configuration_path}[/red italic]", soft_wrap=True)
+        raise typer.Exit(code=1)
+    except ValueError as error:
+        console.print(f"[red italic]{error}[/red italic]")
+        console.print(f"[red italic]Ungültige Konfiguration: {configuration_path}[/red italic]", soft_wrap=True)
+        raise typer.Exit(code=1)
+    except PermissionError as error:
+        console.print(f"[red italic]{error}[/red italic]")
+        console.print(f"[red italic]Zugriff verweigert: {configuration_path}[/red italic]", soft_wrap=True)
+        raise typer.Exit(code=1)
 
 
 if __name__ == "__main__":
