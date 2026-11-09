@@ -341,18 +341,11 @@ def test_cli_analysis_declined_keeps_configuration_unchanged(tmp_path, monkeypat
     assert "Analyseergebnis" in result.output
     assert txt_file_path.read_text(encoding="utf-8") == "das ist eine testdatei"
 
-def test_cli_analysis_saves_new_assignment(tmp_path, monkeypatch):
-    working_directory = tmp_path / "arbeitsverzeichnis"
-    working_directory.mkdir()
-    test_folder = working_directory / "testdateien"
-    test_folder.mkdir()
+def test_cli_analysis_saves_new_assignment(configured_workspace):
+    test_folder = configured_workspace / "testdateien"
     xyz_file_path = test_folder / "sample.xyz"
     xyz_file_path.touch()
-    configuration_path = working_directory / "config.json"
-    sample_config = {"ordner": "testdateien", "kategorien": {".txt": "texte"}}
-    configuration_json = json.dumps(sample_config)
-    configuration_path.write_text(configuration_json, encoding="utf-8")
-    monkeypatch.chdir(working_directory)
+    configuration_path = configured_workspace / "config.json"
     result = runner.invoke(app, ["analyse"], input="\ny\ny\nn\narchive\ny\n")
     assert result.exit_code == 0
     assert "Erfolgreich gespeichert" in result.output
@@ -362,23 +355,17 @@ def test_cli_analysis_saves_new_assignment(tmp_path, monkeypatch):
     assert configuration["ordner"] == "testdateien"
     assert xyz_file_path.exists()
 
-def test_cli_analysis_declined_save_keeps_configuration_unchanged(tmp_path, monkeypatch):
-    working_directory = tmp_path / "arbeitsverzeichnis"
-    working_directory.mkdir()
-    test_folder = working_directory / "testdateien"
-    test_folder.mkdir()
+def test_cli_analysis_declined_save_keeps_configuration_unchanged(configured_workspace):
+    test_folder = configured_workspace / "testdateien"
     xyz_file_path = test_folder / "sample.xyz"
     xyz_file_path.touch()
-    configuration_path = working_directory / "config.json"
-    sample_config = {"ordner": "testdateien", "kategorien": {".txt": "texte"}}
-    configuration_json = json.dumps(sample_config)
-    configuration_path.write_text(configuration_json, encoding="utf-8")
-    monkeypatch.chdir(working_directory)
+    configuration_path = configured_workspace/ "config.json"
     result = runner.invoke(app, ["analyse"], input="\ny\ny\nn\narchive\nn\n")
+    expected_configuration = {"ordner": "testdateien", "kategorien": {".txt": "texte"}}
     assert result.exit_code == 0
     assert "Neue Zuordnungen werden nicht gespeichert. Abbruch." in result.output
     configuration = load_configuration(configuration_path)
-    assert configuration == sample_config
+    assert configuration == expected_configuration
     assert xyz_file_path.exists()
 
 def test_cli_analysis_saves_removed_assignment(configured_workspace):
