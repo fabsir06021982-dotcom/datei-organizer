@@ -305,16 +305,8 @@ def test_cli_sorting_files_success(tmp_path, monkeypatch):
     assert (working_directory / "texte" / "example.txt").read_text(encoding="utf-8") == "Hallo. Das ist eine Testdatei"
     assert (working_directory / "texte" / "example.txt").exists()
 
-def test_cli_analyze_empty_folder(tmp_path, monkeypatch):
-    working_directory = tmp_path / "arbeitsverzeichnis"
-    working_directory.mkdir()
-    configuration_path = working_directory / "config.json"
-    empty_folder = working_directory / "empty_folder"
-    empty_folder.mkdir()
-    sample_config = {"ordner": str(empty_folder), "kategorien": {".txt": "texte"}}
-    configuration_json = json.dumps(sample_config)
-    configuration_path.write_text(configuration_json, encoding="utf-8")
-    monkeypatch.chdir(working_directory)
+def test_cli_analyze_empty_folder(configured_workspace):
+    empty_folder = configured_workspace / "testdateien"
     result = runner.invoke(app, ["analyse"], input="\n")
     assert result.exit_code == 0
     assert "Im ausgewählten Ordner wurden keine Dateien gefunden." in result.output
@@ -322,23 +314,19 @@ def test_cli_analyze_empty_folder(tmp_path, monkeypatch):
     assert empty_folder.exists()
     assert not list(empty_folder.iterdir())
     
-def test_cli_analysis_declined_keeps_configuration_unchanged(tmp_path, monkeypatch):
-    working_directory = tmp_path / "arbeitsverzeichnis"
-    working_directory.mkdir()
-    test_folder = working_directory / "testdateien"
-    test_folder.mkdir()
+def test_cli_analysis_declined_keeps_configuration_unchanged(configured_workspace):
+    test_folder = configured_workspace / "testdateien"
     txt_file_path = test_folder / "sample.txt"
     txt_file_path.write_text("das ist eine testdatei", encoding="utf-8")
-    configuration_path = working_directory / "config.json"
-    sample_config = {"ordner": "testdateien", "kategorien": {".txt": "texte"}}
-    configuration_json = json.dumps(sample_config)
-    configuration_path.write_text(configuration_json, encoding="utf-8")
-    monkeypatch.chdir(working_directory)
+    configuration_path = configured_workspace / "config.json"
+    expected_configuration = {"ordner": "testdateien", "kategorien": {".txt": "texte"}}
     result = runner.invoke(app, ["analyse"], input="\nn\n")
+    configuration = load_configuration(configuration_path)
     assert result.exit_code == 0
     assert "Kategoriezuordnungen werden nicht bearbeitet. Ende." in result.output
     assert txt_file_path.exists()
     assert "Analyseergebnis" in result.output
+    assert configuration == expected_configuration
     assert txt_file_path.read_text(encoding="utf-8") == "das ist eine testdatei"
 
 def test_cli_analysis_saves_new_assignment(configured_workspace):
