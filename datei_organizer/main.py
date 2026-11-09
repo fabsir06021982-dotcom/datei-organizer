@@ -32,8 +32,8 @@ def load_configuration(configuration_path: Path):
                     raise ValueError("JSON Datei enthält falsche Werte")
                 validate_category_name(category)
 
-            if not configuration["kategorien"] or not configuration["ordner"].strip():
-                raise ValueError("In der JSON fehlen bestimmte Werte")
+            if not configuration["ordner"].strip():
+                raise ValueError("In der JSON fehlen Werte")
 
             return configuration
     except FileNotFoundError as error:

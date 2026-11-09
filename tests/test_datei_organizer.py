@@ -131,9 +131,12 @@ def test_empty_categories(tmp_path):
 
     configuration_json = json.dumps(sample_configuration)
     configuration_path.write_text(configuration_json, encoding="utf-8")
+  
+    configuration = load_configuration(configuration_path)
 
-    with pytest.raises(ValueError):
-        load_configuration(configuration_path)
+    assert configuration["kategorien"] == {}
+    assert configuration["ordner"] == "testdateien"
+
 
 def test_configuration_root_type(tmp_path):
     configuration_path = tmp_path / "config.json"
