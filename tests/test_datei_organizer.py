@@ -5,6 +5,8 @@ import subprocess
 import json
 from unittest.mock import patch
 from pathlib import Path
+from typer.testing import CliRunner
+from datei_organizer.cli import app
 from datei_organizer.main import organize_files, determine_category, load_configuration
 
 categories = {
@@ -266,3 +268,48 @@ def test_cli_missing_working_directory(tmp_path):
     output = subprocess.run(["python", str(main_file)], cwd=working_directory, capture_output=True, text=True)
     assert output.returncode == 1
     assert "Arbeitsverzeichnis nicht gefunden" in output.stdout
+
+runner = CliRunner()
+
+def test_cli_sorting_declined_keeps_files_unchanged(tmp_path, monkeypatch):
+    working_directory = tmp_path / "arbeitsverzeichnis"
+    working_directory.mkdir()
+    txt_file_path = working_directory / "example.txt"
+    configuration_path = working_directory / "config.json"
+    sample_config = {"ordner": str(working_directory), "kategorien": {".txt": "texte"}}
+    configuration_json = json.dumps(sample_config)
+    configuration_path.write_text(configuration_json, encoding="utf-8")
+    txt_file_path.write_text("Hallo. Das ist eine Testdatei", encoding="utf-8")
+    monkeypatch.chdir(working_directory)
+    result = runner.invoke(app, ["sortiere"], input="\nn\n")
+    assert result.exit_code == 0
+    assert "Sortiervorgang abgebrochen" in result.output
+    assert txt_file_path.exists()
+    assert txt_file_path.read_text(encoding="utf-8") == "Hallo. Das ist eine Testdatei"
+    assert not (working_directory / "texte" / "example.txt").exists()
+
+def test_cli_sorting_files_success(tmp_path, monkeypatch):
+    working_directory = tmp_path / "arbeitsverzeichnis"
+    working_directory.mkdir()
+    txt_file_path = working_directory / "example.txt"
+    configuration_path = working_directory / "config.json"
+    sample_config = {"ordner": str(working_directory), "kategorien": {".txt": "texte"}}
+    configuration_json = json.dumps(sample_config)
+    configuration_path.write_text(configuration_json, encoding="utf-8")
+    txt_file_path.write_text("Hallo. Das ist eine Testdatei", encoding="utf-8")
+    monkeypatch.chdir(working_directory)
+    result = runner.invoke(app, ["sortiere"], input="\ny\ny")
+    assert result.exit_code == 0
+    assert "Sortierdurchlauf beendet." in result.output
+    assert not txt_file_path.exists()
+    assert (working_directory / "texte" / "example.txt").read_text(encoding="utf-8") == "Hallo. Das ist eine Testdatei"
+    assert (working_directory / "texte" / "example.txt").exists()
+
+    
+
+
+
+
+
+
+

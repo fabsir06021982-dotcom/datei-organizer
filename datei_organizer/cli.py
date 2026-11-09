@@ -191,6 +191,7 @@ def sort_files() -> None:
         console.print("[cyan]Sortiervorgang abgebrochen.[/cyan]")
         return    
     organize_files(selected_folder, configuration["kategorien"])
+    console.print("[cyan]Sortierdurchlauf beendet.[/cyan]")
     
 
 
