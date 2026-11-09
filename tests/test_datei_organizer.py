@@ -381,18 +381,11 @@ def test_cli_analysis_declined_save_keeps_configuration_unchanged(tmp_path, monk
     assert configuration == sample_config
     assert xyz_file_path.exists()
 
-def test_cli_analysis_saves_removed_assignment(tmp_path, monkeypatch):
-    working_directory = tmp_path / "arbeitsverzeichnis"
-    working_directory.mkdir()
-    test_folder = working_directory / "testdateien"
-    test_folder.mkdir()
+def test_cli_analysis_saves_removed_assignment(configured_workspace):
+    test_folder = configured_workspace / "testdateien"
     test_file_path = test_folder / "test.txt"
     test_file_path.write_text("Testdatei", encoding="utf-8")
-    configuration_path = working_directory / "config.json"
-    sample_config = {"ordner": "testdateien", "kategorien": {".txt": "texte"}}
-    configuration_json = json.dumps(sample_config)
-    configuration_path.write_text(configuration_json, encoding="utf-8")
-    monkeypatch.chdir(working_directory)
+    configuration_path = configured_workspace / "config.json"
     result = runner.invoke(app, ["analyse"], input="\ny\ny\ny\ny\n")
     configuration = load_configuration(configuration_path)
     assert "Erfolgreich gespeichert" in result.output
@@ -400,18 +393,11 @@ def test_cli_analysis_saves_removed_assignment(tmp_path, monkeypatch):
     assert configuration == {"ordner": "testdateien", "kategorien": {}}
     assert test_file_path.exists()
 
-def test_cli_analysis_retries_invalid_category(tmp_path, monkeypatch):
-    working_directory = tmp_path / "arbeitsverzeichnis"
-    working_directory.mkdir()
-    test_folder = working_directory / "testdateien"
-    test_folder.mkdir()
+def test_cli_analysis_retries_invalid_category(configured_workspace):
+    test_folder = configured_workspace / "testdateien"
     xyz_file_path = test_folder / "test.xyz"
     xyz_file_path.write_text("Testdatei", encoding="utf-8")
-    configuration_path = working_directory / "config.json"
-    sample_config = {"ordner": "testdateien", "kategorien": {".txt": "texte"}}
-    configuration_json = json.dumps(sample_config)
-    configuration_path.write_text(configuration_json, encoding="utf-8")
-    monkeypatch.chdir(working_directory)
+    configuration_path = configured_workspace / "config.json"
     result = runner.invoke(app, ["analyse"], input="\ny\ny\nn\n../archive\narchive\ny\n")
     configuration = load_configuration(configuration_path)
     assert "Erfolgreich gespeichert" in result.output
@@ -420,26 +406,33 @@ def test_cli_analysis_retries_invalid_category(tmp_path, monkeypatch):
     assert configuration == {"ordner": "testdateien", "kategorien": {".txt": "texte", ".xyz": "archive"}}
     assert xyz_file_path.exists()
 
-def test_cli_analysis_keeps_assignment_after_three_invalid_attempts(tmp_path, monkeypatch):
-    working_directory = tmp_path / "arbeitsverzeichnis"
-    working_directory.mkdir()
-    test_folder = working_directory / "testdateien"
-    test_folder.mkdir()
+def test_cli_analysis_keeps_assignment_after_three_invalid_attempts(configured_workspace):
+    test_folder = configured_workspace / "testdateien"
+    configuration_path = configured_workspace / "config.json"
+    expected_configuration = {"ordner": "testdateien", "kategorien": {".txt": "texte"}}
     txt_file_path = test_folder / "test.txt"
     txt_file_path.write_text("Testdatei", encoding="utf-8")
-    configuration_path = working_directory / "config.json"
-    sample_config = {"ordner": "testdateien", "kategorien": {".txt": "texte"}}
-    configuration_json = json.dumps(sample_config)
-    configuration_path.write_text(configuration_json, encoding="utf-8")
-    monkeypatch.chdir(working_directory)
     result = runner.invoke(app, ["analyse"], input="\ny\ny\nn\n../texte\nC:\\texte\n.\ny\n")
     configuration = load_configuration(configuration_path)
     assert "Keinen gültigen Ordnernamen eingegeben." in result.output
     assert "Pfadangabe enthalten" in result.output
     assert result.exit_code == 0
-    assert configuration == sample_config
+    assert configuration == expected_configuration
     assert txt_file_path.exists()
-    
+
+@pytest.fixture
+def configured_workspace(tmp_path, monkeypatch) -> Path:
+    working_directory = tmp_path / "arbeitsverzeichnis"
+    working_directory.mkdir()
+    test_folder = working_directory / "testdateien"
+    test_folder.mkdir()
+    configuration_path = working_directory / "config.json"
+    sample_config = {"ordner": "testdateien", "kategorien": {".txt": "texte"}}
+    configuration_json = json.dumps(sample_config)
+    configuration_path.write_text(configuration_json, encoding="utf-8")
+    monkeypatch.chdir(working_directory)
+    return working_directory
+
     
 
 
