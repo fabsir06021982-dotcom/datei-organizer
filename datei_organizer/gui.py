@@ -75,10 +75,22 @@ class OrganizerGUI():
             self.show_status(self.status_label, "Im ausgewählten Ordner wurden keine Dateien gefunden.")
             return
         self.percentages = calculate_percentages(self.analysis_result)
+        self.show_analysis_table()
         self.show_status(self.status_label, "Analyse abgeschlossen")
 
-
     def show_analysis_table(self):
+        for item in self.analysis_tree.get_children():
+            self.analysis_tree.delete(item)
+        for file_extension, data in self.analysis_result.items():
+            category = data["kategorie"]
+            count = data["anzahl"]
+            percentage = self.percentages[file_extension]
+        
+            
+            display_extension = file_extension or "ohne Endung"
+            if category is None:
+                category = "nicht zugeordnet"
+            self.analysis_tree.insert("", "end", values=(display_extension, count, f"{percentage:.2f}%", category))
         self.analysis_tree.grid(row=6, column=0)
 
 
