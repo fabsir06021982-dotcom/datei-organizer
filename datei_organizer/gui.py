@@ -2,7 +2,7 @@ import tkinter as tk
 from tkinter import ttk
 from tkinter import filedialog
 from pathlib import Path
-from .main import load_configuration, analyze_files, calculate_percentages
+from .main import load_configuration, analyze_files, calculate_percentages, validate_category_name
 
 class OrganizerGUI():
     def __init__(self, root, configuration):
@@ -14,7 +14,12 @@ class OrganizerGUI():
         self.root.geometry("600x600")
         self.root.resizable(True, True)
         self.root.title("Advanced File Organizer")
+        self.draft_categories = self.configuration["kategorien"].copy()
+        self.extension_by_item = {}
+        self.selected_extension = None
         self.create_widgets()
+
+       
 
 
     def create_widgets(self):
@@ -23,18 +28,50 @@ class OrganizerGUI():
         self.folder_label = ttk.Label(self.root, text="Kein Ordner ausgewählt")
         self.analyze_button = ttk.Button(self.root, text="Analyse", command=self.analyze_folder)
         self.status_label = ttk.Label(self.root, text="")
-        self.analysis_tree = ttk.Treeview(self.root, columns=["file_extension", "count", "percentages", "category"], show="headings")
+        self.analysis_tree = ttk.Treeview(self.root, columns=["file_extension", "count", "percentages", "category"], show="headings", selectmode="browse")
         self.analysis_tree.heading("file_extension", text="Dateiendung")
         self.analysis_tree.heading("count", text="Anzahl")
         self.analysis_tree.heading("percentages", text="Anteil")
         self.analysis_tree.heading("category", text="Kategorie")
+        self.analysis_tree.bind("<<TreeviewSelect>>", self.on_analysis_selection)
+        self.category_var = tk.StringVar(self.root)
+        self.category_label = ttk.Label(self.root, text="Kategorie")
+        self.category_entry = ttk.Entry(self.root, textvariable=self.category_var)
+        self.assignment_button = ttk.Button(self.root, text="Zuordnung übernehmen", command=self.apply_assignment)
+
 
         self.label.grid(row=0, column=0)
         self.button.grid(row=1, column=0)
         self.folder_label.grid(row=2, column=0)
         self.analyze_button.grid(row=4, column=0)
-        self.status_label.grid(row=5, column=0)
-        
+        self.category_label.grid(row=7, column=0)
+        self.category_entry.grid(row=8, column=0)
+        self.assignment_button.grid(row=8, column=1)
+        self.status_label.grid(row=9, column=0)
+    
+      
+    def on_analysis_selection(self, event):
+        selected = self.analysis_tree.selection()
+        if not selected:
+            self.selected_extension = None
+            self.category_var.set("")
+            return
+        item_id = selected[0]
+        self.selected_extension = self.extension_by_item.get(item_id)
+        category = self.draft_categories.get(self.selected_extension, "")
+        self.category_var.set(category)
+
+    def apply_assignment(self) -> None:
+        if self.selected_extension is None:
+            self.show_error(self.status_label, "Keine Dateiendung ausgewählt")
+            return
+        input_text = self.category_entry.get().strip()
+        try:
+            validate_category_name(input_text)
+        except ValueError as error:
+            self.show_error(self.status_label, str(error))
+            return
+        self.draft_categories[self.selected_extension] = input_text
 
 
     def update_greeting(self):
@@ -78,19 +115,20 @@ class OrganizerGUI():
         self.show_analysis_table()
         self.show_status(self.status_label, "Analyse abgeschlossen")
 
+
     def show_analysis_table(self):
         for item in self.analysis_tree.get_children():
             self.analysis_tree.delete(item)
+        self.extension_by_item = {}
         for file_extension, data in self.analysis_result.items():
             category = data["kategorie"]
             count = data["anzahl"]
             percentage = self.percentages[file_extension]
-        
-            
             display_extension = file_extension or "ohne Endung"
             if category is None:
                 category = "nicht zugeordnet"
-            self.analysis_tree.insert("", "end", values=(display_extension, count, f"{percentage:.2f}%", category))
+            item_id = self.analysis_tree.insert("", "end", values=(display_extension, count, f"{percentage:.2f}%", category))
+            self.extension_by_item[item_id] = file_extension
         self.analysis_tree.grid(row=6, column=0)
 
 
