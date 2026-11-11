@@ -2,7 +2,7 @@ import tkinter as tk
 from tkinter import ttk
 from tkinter import filedialog
 from pathlib import Path
-from .main import load_configuration, analyze_files, calculate_percentages, validate_category_name
+from .main import load_configuration, analyze_files, calculate_percentages, validate_category_name, save_configuration
 
 class OrganizerGUI():
     def __init__(self, root, configuration):
@@ -40,8 +40,9 @@ class OrganizerGUI():
         self.assignment_button = ttk.Button(self.root, text="Zuordnung übernehmen", command=self.apply_assignment)
         self.delete_button = ttk.Button(self.root, text="Zuordnung löschen", command=self.delete_assignment)
         self.reset_button = ttk.Button(self.root, text="Änderungen verwerfen", command=self.discard_changes)
-
-
+        self.save_button = ttk.Button(self.root, text="Änderungen speichern", command=self.save_assignment)       
+        self.save_default_var = tk.BooleanVar(self.root, value=False)
+        self.folder_checkbutton = ttk.Checkbutton(self.root, variable=self.save_default_var, text="Ausgewählten Ordner als Standard speichern", takefocus=0)
         self.label.grid(row=0, column=0)
         self.button.grid(row=1, column=0)
         self.folder_label.grid(row=2, column=0)
@@ -52,6 +53,8 @@ class OrganizerGUI():
         self.status_label.grid(row=10, column=0)
         self.delete_button.grid(row=11, column=0)
         self.reset_button.grid(row=12, column=0)
+        self.folder_checkbutton.grid(row=13, column=0)
+        self.save_button.grid(row=14, column=0)
       
     def on_analysis_selection(self, event):
         """
@@ -131,7 +134,33 @@ class OrganizerGUI():
         self.show_status(self.status_label, "Zuordnung wurde zurückgesetzt")    
 
     
+    def save_assignment(self) -> None:
+        """
+        Save assignments in configuration
+        """
+        conf_duplicate = self.configuration.copy()
+        conf_duplicate["kategorien"] = self.draft_categories.copy()
+        if not self.save_default_var.get():
+            self.show_status(self.status_label, "Standardordner bleibt erhalten.")
+        elif self.selected_folder:
+            self.show_status(self.status_label, "Ordner ausgewählt.")
+            conf_duplicate["ordner"] = str(self.selected_folder)
+        elif self.selected_folder is None:
+            self.show_status(self.status_label, "Kein Ordner ausgewählt.")
+            return
+        try:           
+            save_configuration(Path("config.json"), conf_duplicate)  
+        except OSError:
+            self.show_error(self.status_label, "Die Konfiguration konnte nicht gespeichert werden.")
+            return       
+        self.configuration = conf_duplicate
+        self.show_status(self.status_label, "Konfiguration erfolgreich gespeichert.")
 
+                   
+        
+
+          
+       
 
     def update_greeting(self):
         self.label.config(text="Deine Dateien einfach organisieren!")
