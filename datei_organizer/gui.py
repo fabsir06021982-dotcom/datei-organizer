@@ -51,6 +51,9 @@ class OrganizerGUI():
     
       
     def on_analysis_selection(self, event):
+        """
+        event handler which refresh the input field of categories if the user click on a item on the analysis table
+        """
         selected = self.analysis_tree.selection()
         if not selected:
             self.selected_extension = None
@@ -62,6 +65,9 @@ class OrganizerGUI():
         self.category_var.set(category)
 
     def apply_assignment(self) -> None:
+        """
+        Validate the category name and update the draft assignment.
+        """
         if self.selected_extension is None:
             self.show_error(self.status_label, "Keine Dateiendung ausgewählt")
             return
@@ -70,8 +76,12 @@ class OrganizerGUI():
             validate_category_name(input_text)
         except ValueError as error:
             self.show_error(self.status_label, str(error))
-            return
-        self.draft_categories[self.selected_extension] = input_text
+            return      
+        selected = self.analysis_tree.selection()
+        item_id = selected[0]
+        self.analysis_tree.set(item_id, "category", input_text)      
+        self.draft_categories[self.selected_extension] = input_text  
+        self.show_status(self.status_label, "Zuordnung wurde im Entwurf übernommen")
 
 
     def update_greeting(self):
