@@ -14,8 +14,8 @@ class OrganizerGUI():
         self.root.geometry("600x600")
         self.root.resizable(True, True)
         self.root.title("Advanced File Organizer")
-        self.draft_categories = self.configuration["kategorien"].copy()
-        self.extension_by_item = {}
+        self.draft_categories = self.configuration["kategorien"].copy() #{file_extension : category}
+        self.extension_by_item = {} #{item_id : file_extension}
         self.selected_extension = None
         self.create_widgets()
 
@@ -38,6 +38,7 @@ class OrganizerGUI():
         self.category_label = ttk.Label(self.root, text="Kategorie")
         self.category_entry = ttk.Entry(self.root, textvariable=self.category_var)
         self.assignment_button = ttk.Button(self.root, text="Zuordnung übernehmen", command=self.apply_assignment)
+        self.delete_button = ttk.Button(self.root, text="Zuordnung löschen", command=self.delete_assignment)
 
 
         self.label.grid(row=0, column=0)
@@ -46,8 +47,9 @@ class OrganizerGUI():
         self.analyze_button.grid(row=4, column=0)
         self.category_label.grid(row=7, column=0)
         self.category_entry.grid(row=8, column=0)
-        self.assignment_button.grid(row=8, column=1)
-        self.status_label.grid(row=9, column=0)
+        self.assignment_button.grid(row=9, column=0)
+        self.status_label.grid(row=10, column=0)
+        self.delete_button.grid(row=11, column=0)
     
       
     def on_analysis_selection(self, event):
@@ -81,7 +83,27 @@ class OrganizerGUI():
         item_id = selected[0]
         self.analysis_tree.set(item_id, "category", input_text)      
         self.draft_categories[self.selected_extension] = input_text  
-        self.show_status(self.status_label, "Zuordnung wurde im Entwurf übernommen")
+        self.show_status(self.status_label, "Zuordnung wurde übernommen. Änderung noch nicht gespeichert")
+
+
+    def delete_assignment(self) -> None:
+        """
+        Remove the selected category assignment from the draft.
+        """
+        selected = self.analysis_tree.selection()
+        if not selected:
+            self.selected_extension = None
+            self.show_status(self.status_label, "Keine Endungsgruppe ausgewählt")
+            return
+        item_id = selected[0]
+        file_extension = self.extension_by_item.get(item_id)            
+        removed_category = self.draft_categories.pop(file_extension, None)
+        if removed_category is None:
+            self.show_status(self.status_label, "Für diese Dateiendung besteht keine Zuordnung")
+            return        
+        self.category_var.set("")
+        self.analysis_tree.set(item_id, "category", "nicht zugeordnet") 
+        self.show_status(self.status_label, "Zuordnung entfernt. Änderung noch nicht gespeichert")
 
 
     def update_greeting(self):
