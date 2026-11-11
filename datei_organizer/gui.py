@@ -39,6 +39,7 @@ class OrganizerGUI():
         self.category_entry = ttk.Entry(self.root, textvariable=self.category_var)
         self.assignment_button = ttk.Button(self.root, text="Zuordnung übernehmen", command=self.apply_assignment)
         self.delete_button = ttk.Button(self.root, text="Zuordnung löschen", command=self.delete_assignment)
+        self.reset_button = ttk.Button(self.root, text="Änderungen verwerfen" command=self.discard_changes)
 
 
         self.label.grid(row=0, column=0)
@@ -104,6 +105,24 @@ class OrganizerGUI():
         self.category_var.set("")
         self.analysis_tree.set(item_id, "category", "nicht zugeordnet") 
         self.show_status(self.status_label, "Zuordnung entfernt. Änderung noch nicht gespeichert")
+
+
+    def discard_changes(self) -> None:
+        """
+        Discard changes and restore assignments and table
+        """
+        for item in analysis_tree.get_children():
+            analysis_tree.delete(item)
+        for file_extension, category in self.self.configuration["kategorien"].items():
+            count = self.analysis_result[file_extension]
+            percent = self.percentages[file_extension]
+            display_extension = file_extension or "ohne Endung"
+            if category == None:
+                category = "nicht zugeordnet"
+            self.analysis_tree.insert("", "end", values=(display_extension, count, f"{percent:.2f}%", category))
+
+
+    
 
 
     def update_greeting(self):
