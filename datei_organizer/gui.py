@@ -39,7 +39,7 @@ class OrganizerGUI():
         self.category_entry = ttk.Entry(self.root, textvariable=self.category_var)
         self.assignment_button = ttk.Button(self.root, text="Zuordnung übernehmen", command=self.apply_assignment)
         self.delete_button = ttk.Button(self.root, text="Zuordnung löschen", command=self.delete_assignment)
-        self.reset_button = ttk.Button(self.root, text="Änderungen verwerfen" command=self.discard_changes)
+        self.reset_button = ttk.Button(self.root, text="Änderungen verwerfen", command=self.discard_changes)
 
 
         self.label.grid(row=0, column=0)
@@ -51,7 +51,7 @@ class OrganizerGUI():
         self.assignment_button.grid(row=9, column=0)
         self.status_label.grid(row=10, column=0)
         self.delete_button.grid(row=11, column=0)
-    
+        self.reset_button.grid(row=12, column=0)
       
     def on_analysis_selection(self, event):
         """
@@ -111,16 +111,24 @@ class OrganizerGUI():
         """
         Discard changes and restore assignments and table
         """
-        for item in analysis_tree.get_children():
-            analysis_tree.delete(item)
-        for file_extension, category in self.self.configuration["kategorien"].items():
-            count = self.analysis_result[file_extension]
-            percent = self.percentages[file_extension]
+        if self.analysis_result is None:
+            return
+        self.draft_categories = self.configuration["kategorien"].copy()
+        self.selected_extension = None
+        self.category_var.set("")
+        for item in self.analysis_tree.get_children():
+            self.analysis_tree.delete(item)
+        self.extension_by_item = {}
+        for file_extension in self.analysis_result:
+            category = self.configuration["kategorien"].get(file_extension)
+            count = self.analysis_result[file_extension]["anzahl"]
+            percent = self.percentages.get(file_extension)
             display_extension = file_extension or "ohne Endung"
-            if category == None:
+            if category is None:
                 category = "nicht zugeordnet"
-            self.analysis_tree.insert("", "end", values=(display_extension, count, f"{percent:.2f}%", category))
-
+            item_id = self.analysis_tree.insert("", "end", values=(display_extension, count, f"{percent:.2f}%", category))
+            self.extension_by_item[item_id] = file_extension
+        self.show_status(self.status_label, "Zuordnung wurde zurückgesetzt")    
 
     
 
