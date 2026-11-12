@@ -138,22 +138,22 @@ class OrganizerGUI():
         """
         Save assignments in configuration
         """
-        conf_duplicate = self.configuration.copy()
-        conf_duplicate["kategorien"] = self.draft_categories.copy()
+        configuration_to_save = self.configuration.copy()
+        configuration_to_save["kategorien"] = self.draft_categories.copy()
         if not self.save_default_var.get():
             self.show_status(self.status_label, "Standardordner bleibt erhalten.")
         elif self.selected_folder:
             self.show_status(self.status_label, "Ordner ausgewählt.")
-            conf_duplicate["ordner"] = str(self.selected_folder)
+            configuration_to_save["ordner"] = str(self.selected_folder)
         elif self.selected_folder is None:
             self.show_status(self.status_label, "Kein Ordner ausgewählt.")
             return
         try:           
-            save_configuration(Path("config.json"), conf_duplicate)  
+            save_configuration(Path("config.json"), configuration_to_save)  
         except OSError:
             self.show_error(self.status_label, "Die Konfiguration konnte nicht gespeichert werden.")
             return       
-        self.configuration = conf_duplicate
+        self.configuration = configuration_to_save
         self.show_status(self.status_label, "Konfiguration erfolgreich gespeichert.")
 
                    

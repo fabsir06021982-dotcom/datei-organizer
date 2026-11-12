@@ -118,10 +118,10 @@ def organize_files(folder: Path, categories: dict[str, str]) -> None:
             logging.exception("Die Datei %s konnte nicht nach %s verschoben werden ", source_file, destination_folder)
 
 def analyze_files(folder_path: Path, categories: dict) -> dict:
-    """Count files recursively by extension and look up their configured categories."""
+    """Count files by extension and look up their configured categories."""
     analysis_result = {}
     folder = Path(folder_path)
-    for path in folder.rglob("*"):
+    for path in folder.glob("*"):
         if path.is_file():
             file_extension = path.suffix.lower()
             if file_extension in analysis_result:

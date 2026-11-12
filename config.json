@@ -1,10 +1,8 @@
 {
-    "ordner": "testdateien",
+    "ordner": "C:\\Users\\fabsi\\Downloads",
     "kategorien": {
-        ".png": "bilder",
-        ".jpg": "bilder",
         ".pdf": "dokumente",
         ".mmd": "markdown",
-        ".xyz": "archive"
+        ".xyz": "sonstiges"
     }
 }
