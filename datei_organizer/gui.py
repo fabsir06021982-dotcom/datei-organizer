@@ -209,14 +209,16 @@ class OrganizerGUI():
             self.analysis_tree.delete(item)
         self.extension_by_item = {}
         for file_extension, data in self.analysis_result.items():
-            category = data["kategorie"]
             count = data["anzahl"]
             percentage = self.percentages[file_extension]
             display_extension = file_extension or "ohne Endung"
+            category = self.draft_categories.get(file_extension)
             if category is None:
-                category = "nicht zugeordnet"
+                category = "nicht zugeordnet"            
             item_id = self.analysis_tree.insert("", "end", values=(display_extension, count, f"{percentage:.2f}%", category))
             self.extension_by_item[item_id] = file_extension
+        self.selected_extension = None
+        self.category_var.set("")
         self.analysis_tree.grid(row=6, column=0)
 
 
