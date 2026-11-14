@@ -5,3 +5,4 @@ testdateien/
 Hauptlog.log*
 .coverage
 .coverage.*
+.pytest_cache/
