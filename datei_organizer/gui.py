@@ -1,19 +1,34 @@
 import tkinter as tk
-from tkinter import ttk
+import ttkbootstrap as ttk
 from tkinter import filedialog
 from tkinter import messagebox
+from tkinter import font
 from pathlib import Path
-from turtle import bgcolor
-from .main import load_configuration, analyze_files, calculate_percentages, validate_category_name, save_configuration
+import platform
+from .main import load_configuration, analyze_files, calculate_percentages, validate_category_name, save_configuration, organize_files
 
 class OrganizerGUI():
     def __init__(self, root, configuration):
+        system = platform.system()
+        if system == "Windows":
+            font_family = "Segoe UI"
+        elif system == "Darwin":
+            font_family = "Helvetica Neue"
+        else:
+            font_family = "DejaVu Sans"
+        default_font = font.nametofont("TkDefaultFont")
+        default_font.configure(family=font_family, size=12)
         self.root = root
+        self.root.option_add("*Font", default_font)
         self.configuration = configuration
         self.selected_folder = None
         self.configure_theme()
         self.analysis_result = None
-        self.root.geometry("600x600")
+        self.root.geometry("1000x1000")
+        
+        self.root.columnconfigure(0, weight=1)
+        self.root.columnconfigure(1, weight=1)
+        self.root.columnconfigure(2, weight=1)
         self.root.resizable(True, True)
         self.root.title("Advanced File Organizer")
         self.draft_categories = self.configuration["kategorien"].copy() #{file_extension : category}
@@ -25,11 +40,11 @@ class OrganizerGUI():
 
 
     def create_widgets(self):
-        self.label = ttk.Label(self.root, text="Willkommen beim Advanced File Organizer")
-        self.button = ttk.Button(self.root, text="Durchsuchen", command=self.select_folder)
-        self.folder_label = ttk.Label(self.root, text="")
-        self.analyze_button = ttk.Button(self.root, text="Analyse", command=self.analyze_folder)
-        self.status_label = ttk.Label(self.root, text="", font=("Arial", 12, "bold"), borderwidth=2, relief="solid",justify="center")
+        self.label = ttk.Label(self.root, bootstyle="primary", text="Advanced File Organizer", font=("-size 18 -weight bold -underline True"), padding=5, relief="flat", justify="center")
+        self.button = ttk.Button(self.root, bootstyle="primary", text="Durchsuchen", command=self.select_folder)
+        self.folder_label = ttk.Label(self.root, bootstyle="secondary outline", text="Bestimmen Sie einen Ordner")
+        self.analyze_button = ttk.Button(self.root, bootstyle="primary", text="Analyse", command=self.analyze_folder)
+        self.status_label = ttk.Label(self.root, font=("-size 14"), text="",justify="center")
         self.analysis_tree = ttk.Treeview(self.root, columns=["file_extension", "count", "percentages", "category"], show="headings", selectmode="browse")
         self.analysis_tree.heading("file_extension", text="Dateiendung")
         self.analysis_tree.heading("count", text="Anzahl")
@@ -46,19 +61,23 @@ class OrganizerGUI():
         self.save_default_var = tk.BooleanVar(self.root, value=False)
         self.folder_checkbutton = ttk.Checkbutton(self.root, variable=self.save_default_var, text="Ausgewählten Ordner als Standard speichern", takefocus=0)
         self.sort_button = ttk.Button(self.root, text="Sortieren", command=self.sort_files)
-        self.label.grid(row=0, column=0)
-        self.button.grid(row=1, column=0)
-        self.folder_label.grid(row=2, column=0)
-        self.analyze_button.grid(row=4, column=0)
-        self.category_label.grid(row=7, column=0)
-        self.category_entry.grid(row=8, column=0)
-        self.assignment_button.grid(row=9, column=0)
-        self.status_label.grid(row=16, column=0)
-        self.delete_button.grid(row=11, column=0)
-        self.reset_button.grid(row=12, column=0)
-        self.folder_checkbutton.grid(row=13, column=0)
-        self.save_button.grid(row=14, column=0)
-        self.sort_button.grid(row=15, column=0)
+        self.label.grid(row=1, column=1, pady=15)
+        self.button.grid(row=2, column=1, pady=5)
+        self.folder_label.grid(row=3, column=1, pady=5)
+        self.analyze_button.grid(row=4, column=1, pady=15)
+
+        self.analysis_tree.grid(row=5, column=1, pady=5)
+        self.category_label.grid(row=6, column=1, pady=5)
+        self.category_entry.grid(row=7, column=1, pady=5)
+        self.assignment_button.grid(row=8, column=1, pady=5)
+       
+        self.delete_button.grid(row=9, column=1, pady=5)
+        self.reset_button.grid(row=10, column=1, pady=5)
+        self.folder_checkbutton.grid(row=11, column=1, pady=5)
+        self.save_button.grid(row=12, column=1, pady=5)
+        self.sort_button.grid(row=13, column=1, pady=5) 
+        self.status_label.grid(row=14, column=1, pady=5)
+        self.hide_widgets()
       
     def on_analysis_selection(self, event):
         """
@@ -112,6 +131,28 @@ class OrganizerGUI():
         self.category_var.set("")
         self.analysis_tree.set(item_id, "category", "nicht zugeordnet") 
         self.show_status(self.status_label, "Zuordnung entfernt. Änderung noch nicht gespeichert")
+    
+    def hide_widgets(self) -> None:
+        self.analysis_tree.grid_remove()
+        self.category_label.grid_remove()
+        self.category_entry.grid_remove()
+        self.assignment_button.grid_remove()
+        self.delete_button.grid_remove()
+        self.reset_button.grid_remove()
+        self.save_button.grid_remove()    
+        self.folder_checkbutton.grid_remove()
+        self.sort_button.grid_remove()
+    
+    def unhide_widgets(self) -> None:
+        self.analysis_tree.grid()
+        self.category_label.grid()
+        self.category_entry.grid()
+        self.assignment_button.grid()
+        self.delete_button.grid()
+        self.reset_button.grid()
+        self.save_button.grid()    
+        self.folder_checkbutton.grid()
+        self.sort_button.grid()
 
 
     def discard_changes(self) -> None:
@@ -196,12 +237,12 @@ class OrganizerGUI():
     def analyze_folder(self):
         """Analyze the selected folder and store the results."""
         if self.selected_folder is None:
-            self.analysis_tree.grid_remove()
+            self.hide_widgets()
             self.show_error(self.status_label, "Bitte zuerst einen Ordner auswählen!")
             return
         self.analysis_result = analyze_files(self.selected_folder, self.configuration["kategorien"])
         if not self.analysis_result:
-            self.analysis_tree.grid_remove()
+            self.hide_widgets()
             self.show_status(self.status_label, "Im ausgewählten Ordner wurden keine Dateien gefunden.")
             return
         self.percentages = calculate_percentages(self.analysis_result)
@@ -223,6 +264,8 @@ class OrganizerGUI():
             self.show_status(self.status_label, "Sortieren abgebrochen.")
             return
         self.show_status(self.status_label, "Sortierung bestätigt.")
+        organize_files(self.selected_folder, self.configuration["kategorien"])
+        self.show_status(self.status_label, "Sortiervorgang abgeschlossen.")
         
 
 
@@ -243,29 +286,27 @@ class OrganizerGUI():
             self.extension_by_item[item_id] = file_extension
         self.selected_extension = None
         self.category_var.set("")
-        self.analysis_tree.grid(row=6, column=0)
+        self.unhide_widgets()
+        self.analysis_tree.grid()
 
 
     def configure_theme(self):
         """Configure the theme and styles used for status messages."""
         self.style = ttk.Style()
-        self.style.theme_use("clam")
-        self.style.configure("Error.TLabel", foreground="red", background="white", padding=10)
-        self.style.configure("Status.TLabel", foreground="black", background="white", padding=10)
-        self.style.configure("Warning.TLabel", foreground="orange", background="white", padding=10)
+        self.style.theme_use("bootstrap-dark")
+
 
 
     def show_error(self, label, message: str):
-        label.configure(text=message)
-        label.configure(style="Error.TLabel")
+        label.configure(text=message, bootstyle="danger" )
+
 
     def show_status(self, label, message: str):
-        label.config(text=message)
-        label.configure(style="Status.TLabel")
+        label.config(text=message, bootstyle="info")
+
 
     def show_warning(self, label, message: str):
-        label.configure(text=message)
-        label.configure(style="Warning.TLabel")
+        label.configure(text=message, bootstyle="warning")
 
 
     def extract_categories(self) -> set:
