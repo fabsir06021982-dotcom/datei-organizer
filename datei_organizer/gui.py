@@ -1,7 +1,9 @@
 import tkinter as tk
 from tkinter import ttk
 from tkinter import filedialog
+from tkinter import messagebox
 from pathlib import Path
+from turtle import bgcolor
 from .main import load_configuration, analyze_files, calculate_percentages, validate_category_name, save_configuration
 
 class OrganizerGUI():
@@ -25,9 +27,9 @@ class OrganizerGUI():
     def create_widgets(self):
         self.label = ttk.Label(self.root, text="Willkommen beim Advanced File Organizer")
         self.button = ttk.Button(self.root, text="Durchsuchen", command=self.select_folder)
-        self.folder_label = ttk.Label(self.root, text="Kein Ordner ausgewählt")
+        self.folder_label = ttk.Label(self.root, text="")
         self.analyze_button = ttk.Button(self.root, text="Analyse", command=self.analyze_folder)
-        self.status_label = ttk.Label(self.root, text="")
+        self.status_label = ttk.Label(self.root, text="", font=("Arial", 12, "bold"), borderwidth=2, relief="solid",justify="center")
         self.analysis_tree = ttk.Treeview(self.root, columns=["file_extension", "count", "percentages", "category"], show="headings", selectmode="browse")
         self.analysis_tree.heading("file_extension", text="Dateiendung")
         self.analysis_tree.heading("count", text="Anzahl")
@@ -43,6 +45,7 @@ class OrganizerGUI():
         self.save_button = ttk.Button(self.root, text="Änderungen speichern", command=self.save_assignment)       
         self.save_default_var = tk.BooleanVar(self.root, value=False)
         self.folder_checkbutton = ttk.Checkbutton(self.root, variable=self.save_default_var, text="Ausgewählten Ordner als Standard speichern", takefocus=0)
+        self.sort_button = ttk.Button(self.root, text="Sortieren", command=self.sort_files)
         self.label.grid(row=0, column=0)
         self.button.grid(row=1, column=0)
         self.folder_label.grid(row=2, column=0)
@@ -50,11 +53,12 @@ class OrganizerGUI():
         self.category_label.grid(row=7, column=0)
         self.category_entry.grid(row=8, column=0)
         self.assignment_button.grid(row=9, column=0)
-        self.status_label.grid(row=10, column=0)
+        self.status_label.grid(row=16, column=0)
         self.delete_button.grid(row=11, column=0)
         self.reset_button.grid(row=12, column=0)
         self.folder_checkbutton.grid(row=13, column=0)
         self.save_button.grid(row=14, column=0)
+        self.sort_button.grid(row=15, column=0)
       
     def on_analysis_selection(self, event):
         """
@@ -169,7 +173,8 @@ class OrganizerGUI():
     def select_folder(self):
         """Select a folder and update the displayed selection."""
         selection = filedialog.askdirectory(parent=self.root, initialdir=self.get_initial_directory())
-        if not selection:
+        if not selection or selection == "":
+            self.show_status(self.folder_label, "")
             self.show_status(self.status_label, "Kein Ordner ausgewählt")
             self.selected_folder = None
 
@@ -202,6 +207,25 @@ class OrganizerGUI():
         self.percentages = calculate_percentages(self.analysis_result)
         self.show_analysis_table()
         self.show_status(self.status_label, "Analyse abgeschlossen")
+    
+    def sort_files(self) -> None:
+        """
+        Sort files from selected or default folder and arrange them into assigned categories
+        """
+        if self.selected_folder is None:
+            self.show_status(self.status_label, "Kein Ordner ausgewählt.")
+            return
+        if self.draft_categories != self.configuration["kategorien"]:
+            self.show_status(self.status_label, "Bitte Änderungen speichern oder verwerfen.")
+            return
+        sorting_confirmed = messagebox.askyesno(title="Sortierung bestätigen", message="Dateien jetzt sortieren?", detail=f"Nur direkt enthaltene Dateien werden anhand der gespeicherten Kategorien verschoben. Ordner: {self.selected_folder}", icon=messagebox.QUESTION, default=messagebox.NO, parent=self.root)
+        if not sorting_confirmed:
+            self.show_status(self.status_label, "Sortieren abgebrochen.")
+            return
+        self.show_status(self.status_label, "Sortierung bestätigt.")
+        
+
+
 
 
     def show_analysis_table(self):
@@ -226,9 +250,9 @@ class OrganizerGUI():
         """Configure the theme and styles used for status messages."""
         self.style = ttk.Style()
         self.style.theme_use("clam")
-        self.style.configure("Error.TLabel", foreground="red")
-        self.style.configure("Status.TLabel", foreground="black")
-        self.style.configure("Warning.TLabel", foreground="orange")
+        self.style.configure("Error.TLabel", foreground="red", background="white", padding=10)
+        self.style.configure("Status.TLabel", foreground="black", background="white", padding=10)
+        self.style.configure("Warning.TLabel", foreground="orange", background="white", padding=10)
 
 
     def show_error(self, label, message: str):
