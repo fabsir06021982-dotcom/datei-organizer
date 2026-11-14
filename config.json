@@ -3,6 +3,9 @@
     "kategorien": {
         ".pdf": "dokumente",
         ".mmd": "markdown",
-        ".xyz": "sonstiges"
+        ".xyz": "sonstiges",
+        ".jpg": "bilder",
+        ".ini": "ini",
+        ".txt": "texte"
     }
 }

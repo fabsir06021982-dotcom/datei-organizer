@@ -44,7 +44,7 @@ class OrganizerGUI():
         self.folder_label = ttk.Label(self.root, bootstyle="secondary", text="Bestimmen Sie einen Ordner")
         self.analyze_button = ttk.Button(self.root, bootstyle="primary", text="Analyse", command=self.analyze_folder)
         self.status_label = ttk.Label(self.root, font=("-size 14"), text="",justify="center")
-        self.analysis_tree = ttk.Treeview(self.root, columns=["file_extension", "count", "percentages", "category"], show="headings", selectmode="browse")
+        self.analysis_tree = ttk.Treeview(self.root, columns=["file_extension", "count", "percentages", "category"], show="headings", style="primary.Treeview", selectmode="browse")
         self.analysis_tree.heading("file_extension", text="Dateiendung")
         self.analysis_tree.heading("count", text="Anzahl")
         self.analysis_tree.heading("percentages", text="Anteil")
@@ -60,22 +60,26 @@ class OrganizerGUI():
         self.save_default_var = tk.BooleanVar(self.root, value=False)
         self.folder_checkbutton = ttk.Checkbutton(self.root, variable=self.save_default_var, text="Ausgewählten Ordner als Standard speichern", takefocus=0)
         self.sort_button = ttk.Button(self.root, text="Sortieren", command=self.sort_files)
+        self.sorting_tree = ttk.Treeview(self.root, columns=["filename", "source path", "destination path"], show="headings", style="info.Treeview")
+        self.sorting_tree.heading("filename", text="Dateiname")
+        self.sorting_tree.heading("source path", text="Quelldatei")
+        self.sorting_tree.heading("destination path", text="Zieldatei")
         self.label.grid(row=1, column=1, pady=15)
         self.button.grid(row=2, column=1, pady=5)
         self.folder_label.grid(row=3, column=1, pady=5)
         self.analyze_button.grid(row=4, column=1, pady=15)
-
         self.analysis_tree.grid(row=5, column=1, pady=5)
         self.category_label.grid(row=6, column=1, pady=5)
         self.category_entry.grid(row=7, column=1, pady=5)
-        self.assignment_button.grid(row=8, column=1, pady=5)
-       
+        self.assignment_button.grid(row=8, column=1, pady=5)      
         self.delete_button.grid(row=9, column=1, pady=5)
         self.reset_button.grid(row=10, column=1, pady=5)
         self.folder_checkbutton.grid(row=11, column=1, pady=5)
         self.save_button.grid(row=12, column=1, pady=5)
         self.sort_button.grid(row=13, column=1, pady=5) 
         self.status_label.grid(row=14, column=1, pady=5)
+        self.sorting_tree.grid(row=20, column=1, pady=5)
+        self.hide_sorting_table()
         self.hide_widgets()
       
     def on_analysis_selection(self, event):
@@ -130,7 +134,8 @@ class OrganizerGUI():
         self.category_var.set("")
         self.analysis_tree.set(item_id, "category", "nicht zugeordnet") 
         self.show_status(self.status_label, "Zuordnung entfernt. Änderung noch nicht gespeichert")
-    
+
+
     def hide_widgets(self) -> None:
         self.analysis_tree.grid_remove()
         self.category_label.grid_remove()
@@ -141,7 +146,8 @@ class OrganizerGUI():
         self.save_button.grid_remove()    
         self.folder_checkbutton.grid_remove()
         self.sort_button.grid_remove()
-    
+
+
     def unhide_widgets(self) -> None:
         self.analysis_tree.grid()
         self.category_label.grid()
@@ -152,6 +158,14 @@ class OrganizerGUI():
         self.save_button.grid()    
         self.folder_checkbutton.grid()
         self.sort_button.grid()
+
+
+    def hide_sorting_table(self) -> None:
+        self.sorting_tree.grid_remove()
+
+
+    def unhide_sorting_table(self) -> None:
+        self.sorting_tree.grid()
 
 
     def discard_changes(self) -> None:
@@ -200,18 +214,16 @@ class OrganizerGUI():
         self.configuration = configuration_to_save
         self.show_status(self.status_label, "Konfiguration erfolgreich gespeichert.")
 
-                   
-        
-
-          
-       
 
     def update_greeting(self):
         self.label.config(text="Deine Dateien einfach organisieren!")
         self.button.config(text="Erledigt")
 
+
     def select_folder(self):
-        """Select a folder and update the displayed selection."""
+        """
+        Select a folder and update the displayed selection.
+        """
         selection = filedialog.askdirectory(parent=self.root, initialdir=self.get_initial_directory())
         if not selection:
             if self.selected_folder:
@@ -228,17 +240,22 @@ class OrganizerGUI():
             self.show_status(self.folder_label, self.selected_folder)
 
 
-
     def get_initial_directory(self) -> Path:
-        """Use the configured folder if available, otherwise use the home directory."""
+        """
+        Use the configured folder if available, otherwise use the home directory.
+        """
         working_directory = Path(self.configuration["ordner"])
         if working_directory.is_dir():
             return working_directory
         else:
             return Path.home()
 
+
     def analyze_folder(self):
-        """Analyze the selected folder and store the results."""
+        """
+        Analyze the selected folder and store the results.
+        """
+        self.hide_sorting_table()
         if self.selected_folder is None:
             self.hide_widgets()
             self.show_error(self.status_label, "Bitte zuerst einen Ordner auswählen!")
@@ -251,7 +268,8 @@ class OrganizerGUI():
         self.percentages = calculate_percentages(self.analysis_result)
         self.show_analysis_table()
         self.show_status(self.status_label, "Analyse abgeschlossen")
-    
+
+
     def sort_files(self) -> None:
         """
         Sort files from selected or default folder and arrange them into assigned categories
@@ -267,13 +285,34 @@ class OrganizerGUI():
             self.show_status(self.status_label, "Sortieren abgebrochen.")
             return
         self.show_status(self.status_label, "Sortierung bestätigt.")
-        organize_files(self.selected_folder, self.configuration["kategorien"])
+        self.sort_result = organize_files(self.selected_folder, self.configuration["kategorien"])
         self.show_status(self.status_label, "Sortiervorgang abgeschlossen.")
         self.hide_widgets()
+        self.unhide_sorting_table()
+        self.show_sort_result()
 
+
+    def show_sort_result(self) -> None:
+        """
+        Display the sorting results in a table.
+        """
+        for item in self.sorting_tree.get_children():
+            self.sorting_tree.delete(item)
+        if not self.sort_result:
+            self.show_status(self.status_label, "Keine Dateien verschoben.")
+            self.hide_sorting_table()
+            return
+        self.filename_by_item = {}
+        for filename, data in self.sort_result.items():
+            source_path = data["source"]
+            destination_path = data["destination"]
+            item_id = self.sorting_tree.insert("", "end", values=(filename, source_path, destination_path))
+            self.filename_by_item[item_id] = filename
+        self.sorting_tree.grid()
 
 
     def show_analysis_table(self):
+        self.hide_sorting_table()
         for item in self.analysis_tree.get_children():
             self.analysis_tree.delete(item)
         self.extension_by_item = {}
@@ -293,10 +332,11 @@ class OrganizerGUI():
 
 
     def configure_theme(self):
-        """Configure the theme and styles used for status messages."""
+        """
+        Configure the theme and styles used for status messages.
+        """
         self.style = ttk.Style()
         self.style.theme_use("bootstrap-dark")
-
 
 
     def show_error(self, label, message: str):
@@ -309,11 +349,6 @@ class OrganizerGUI():
 
     def show_warning(self, label, message: str):
         label.configure(text=message, bootstyle="warning")
-
-
-    def extract_categories(self) -> set:
-        """Read the configured categories for the unfinished GUI category selector."""
-        categories = self.configuration["kategorien"]
 
 
 if __name__ == "__main__":
