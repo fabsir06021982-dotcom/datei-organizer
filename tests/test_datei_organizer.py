@@ -498,6 +498,29 @@ def test_analysis_ignores_files_in_subfolders(configured_workspace):
     assert analysis_dict[".txt"]["anzahl"] == 1
     assert len(analysis_dict) == 1
 
+def test_organize_files_returns_successful_moves(configured_workspace):
+    test_folder = configured_workspace / "testdateien"
+    test_file_path1 = test_folder / "example1.txt"
+    test_file_path1.write_text("example1", encoding="utf-8")
+    test_file_path2 = test_folder / "example2.jpg"
+    test_file_path2.write_text("example2", encoding="utf-8")
+    categories = {".txt" : "texte", ".jpg" : "bilder"}
+    test_result = organize_files(test_folder, categories)
+    test_destination_path1 = test_folder / "texte" / "example1.txt"
+    test_destination_path2 = test_folder / "bilder" / "example2.jpg"
+    assert len(test_result) == 2
+    assert "example1.txt" in test_result
+    assert test_result["example1.txt"]["source"] == test_file_path1
+    assert test_result["example1.txt"]["destination"] == test_destination_path1
+    assert "example2.jpg" in test_result
+    assert test_result["example2.jpg"]["source"] == test_file_path2
+    assert test_result["example2.jpg"]["destination"] == test_destination_path2
+    assert not test_file_path1.exists()
+    assert not test_file_path2.exists()
+    assert test_destination_path1.exists()
+    assert test_destination_path2.exists()
+
+
 
     
             

@@ -66,13 +66,14 @@ def determine_category(file_path: Path, categories: dict[str, str]) -> str | Non
         return None
     return category
 
-def organize_files(folder: Path, categories: dict[str, str]) -> None:
-    """Move mapped files in the selected folder without overwriting existing files."""
+def organize_files(folder: Path, categories: dict[str, str]) -> dict:
+    """Move mapped files in the selected folder without overwriting existing files and return dict of successfully moved files"""
     if not folder.is_dir():
         raise FileNotFoundError("Arbeitsverzeichnis nicht gefunden")
 
     # Resolve the base folder before checking destination containment.
     absolute_folder = folder.resolve()
+    result_dict = {}
 
     for file_path in folder.iterdir():
         if file_path.is_dir():
@@ -109,13 +110,19 @@ def organize_files(folder: Path, categories: dict[str, str]) -> None:
             continue
         # Build the source path from the resolved base folder.
         source_file = absolute_folder / file_path.name
-
+        temp_dict = {}
+        
         try:
             # Move the source file into its configured category folder.
             shutil.move(source_file, destination_folder)
             logging.info("Datei %s wurde erfolgreich nach %s verschoben", source_file, destination_folder)
+            temp_dict["source"] = source_file
+            temp_dict["destination"] = destination_file
+            result_dict.update({file_path.name : temp_dict})
         except OSError:
             logging.exception("Die Datei %s konnte nicht nach %s verschoben werden ", source_file, destination_folder)
+        
+    return result_dict
 
 def analyze_files(folder_path: Path, categories: dict) -> dict:
     """Count files by extension and look up their configured categories."""

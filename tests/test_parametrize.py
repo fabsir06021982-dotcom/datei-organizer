@@ -35,4 +35,4 @@ def test_configuration_allows_extensionless_files(tmp_path):
     configuration_path.write_text(configuration_json, encoding="utf-8")
     configuration = load_configuration(Path(configuration_path))
     assert configuration["kategorien"] == {"": "texte"}
-
+    

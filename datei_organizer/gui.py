@@ -25,7 +25,6 @@ class OrganizerGUI():
         self.configure_theme()
         self.analysis_result = None
         self.root.geometry("1000x1000")
-        
         self.root.columnconfigure(0, weight=1)
         self.root.columnconfigure(1, weight=1)
         self.root.columnconfigure(2, weight=1)
@@ -42,7 +41,7 @@ class OrganizerGUI():
     def create_widgets(self):
         self.label = ttk.Label(self.root, bootstyle="primary", text="Advanced File Organizer", font=("-size 18 -weight bold -underline True"), padding=5, relief="flat", justify="center")
         self.button = ttk.Button(self.root, bootstyle="primary", text="Durchsuchen", command=self.select_folder)
-        self.folder_label = ttk.Label(self.root, bootstyle="secondary outline", text="Bestimmen Sie einen Ordner")
+        self.folder_label = ttk.Label(self.root, bootstyle="secondary", text="Bestimmen Sie einen Ordner")
         self.analyze_button = ttk.Button(self.root, bootstyle="primary", text="Analyse", command=self.analyze_folder)
         self.status_label = ttk.Label(self.root, font=("-size 14"), text="",justify="center")
         self.analysis_tree = ttk.Treeview(self.root, columns=["file_extension", "count", "percentages", "category"], show="headings", selectmode="browse")
@@ -214,13 +213,17 @@ class OrganizerGUI():
     def select_folder(self):
         """Select a folder and update the displayed selection."""
         selection = filedialog.askdirectory(parent=self.root, initialdir=self.get_initial_directory())
-        if not selection or selection == "":
+        if not selection:
+            if self.selected_folder:
+                return
             self.show_status(self.folder_label, "")
             self.show_status(self.status_label, "Kein Ordner ausgewählt")
             self.selected_folder = None
-
+            self.hide_widgets()
         else:
-
+            if Path(selection) != self.selected_folder:
+                self.show_status(self.status_label, "")
+                self.hide_widgets()
             self.selected_folder = Path(selection)
             self.show_status(self.folder_label, self.selected_folder)
 
@@ -266,8 +269,7 @@ class OrganizerGUI():
         self.show_status(self.status_label, "Sortierung bestätigt.")
         organize_files(self.selected_folder, self.configuration["kategorien"])
         self.show_status(self.status_label, "Sortiervorgang abgeschlossen.")
-        
-
+        self.hide_widgets()
 
 
 
