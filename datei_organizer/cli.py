@@ -8,8 +8,8 @@ from rich.panel import Panel
 from rich.prompt import Confirm, Prompt
 from rich.table import Table
 import json
-
-from .main import analyze_files, load_configuration, calculate_percentages, validate_category_name, save_configuration, organize_files
+from datei_organizer.configuration_service import ConfigurationService
+from .main import analyze_files, calculate_percentages, organize_files
 
 
 app = typer.Typer()
@@ -57,7 +57,6 @@ def analyze(configuration_path: Annotated[Path, typer.Option("--config")] = Path
     """Analyze a folder."""
     console.print("🔎 [bold underline green]Analyse[/bold underline green]")
     console.print("[cyan]Welchen Ordner willst du analysieren?[/cyan]")
-
     configuration = load_cli_configuration(configuration_path)
 
     default_folder = Path(configuration["ordner"])
@@ -95,7 +94,8 @@ def analyze(configuration_path: Annotated[Path, typer.Option("--config")] = Path
         console.print("[cyan]Neue Zuordnungen werden nicht gespeichert. Abbruch.[/cyan]")
         return
     configuration["kategorien"] = new_assignments
-    save_configuration(configuration_path, configuration)
+    config_service = ConfigurationService()
+    config_service.save_configuration(configuration_path, configuration)
     console.print("[green]✅ Erfolgreich gespeichert.[/green]")
 
 
@@ -124,8 +124,9 @@ def edit_assignments(categories: dict, analysis_result: dict) -> dict:
             for _ in range(3):
                 new_assignment = Prompt.ask("[cyan]✅ Bitte einen gültigen Ordnernamen eingeben?[/cyan]")
                 cleaned_assignment = new_assignment.strip()
+                config_service = ConfigurationService()
                 try:
-                    validate_category_name(cleaned_assignment)
+                    config_service.validate_category_name(cleaned_assignment)
                 except ValueError as error:
                     console.print(f"[red italic]{error}[/red italic]")
                     continue
@@ -180,7 +181,6 @@ def sort_files(configuration_path: Annotated[Path, typer.Option("--config")] = P
     """Sort files using the configured category assignments."""
     console.print("🔎 [bold underline green]Sortiere[/bold underline green]")
     console.print("[cyan]Welchen Ordner willst du sortieren lassen?[/cyan]")
-
     configuration = load_cli_configuration(configuration_path)
 
     default_folder = Path(configuration["ordner"])
@@ -199,8 +199,9 @@ def sort_files(configuration_path: Annotated[Path, typer.Option("--config")] = P
 
 def load_cli_configuration(configuration_path: Path) -> dict:
     """Load configuration and report CLI errors."""
+    config_service = ConfigurationService()
     try:
-        return load_configuration(configuration_path)
+        return config_service.load_configuration(configuration_path)
     except FileNotFoundError as error:
         console.print()
         console.print(f"[red italic]{error}[/red italic]")

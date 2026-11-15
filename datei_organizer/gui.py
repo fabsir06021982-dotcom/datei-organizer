@@ -5,7 +5,8 @@ from tkinter import messagebox
 from tkinter import font
 from pathlib import Path
 import platform
-from .main import load_configuration, analyze_files, calculate_percentages, validate_category_name, save_configuration, organize_files
+from datei_organizer.configuration_service import ConfigurationService
+from .main import analyze_files, calculate_percentages, organize_files
 
 class OrganizerGUI():
     def __init__(self, root, configuration):
@@ -104,8 +105,9 @@ class OrganizerGUI():
             self.show_error(self.status_label, "Keine Dateiendung ausgewählt")
             return
         input_text = self.category_entry.get().strip()
+        config_service = ConfigurationService()
         try:
-            validate_category_name(input_text)
+            config_service.validate_category_name(input_text)
         except ValueError as error:
             self.show_error(self.status_label, str(error))
             return      
@@ -206,8 +208,10 @@ class OrganizerGUI():
         elif self.selected_folder is None:
             self.show_status(self.status_label, "Kein Ordner ausgewählt.")
             return
+
+        config_service = ConfigurationService()
         try:           
-            save_configuration(Path("config.json"), configuration_to_save)  
+            config_service.save_configuration(Path("config.json"), configuration_to_save)  
         except OSError:
             self.show_error(self.status_label, "Die Konfiguration konnte nicht gespeichert werden.")
             return       
@@ -354,7 +358,8 @@ class OrganizerGUI():
 if __name__ == "__main__":
 
     configuration_path = Path("config.json")
-    configuration = load_configuration(configuration_path)
+    config_service = ConfigurationService()
+    configuration = config_service.load_configuration(configuration_path)
 
     root = tk.Tk()
     organizer_gui = OrganizerGUI(root, configuration)

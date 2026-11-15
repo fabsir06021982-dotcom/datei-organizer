@@ -1,8 +1,9 @@
-﻿from pathlib import Path, PureWindowsPath, PurePosixPath
+﻿from pathlib import Path
 import logging
 from logging.handlers import RotatingFileHandler
 import shutil
 import json
+from datei_organizer.configuration_service import ConfigurationService
 
 handler = RotatingFileHandler(filename="Hauptlog.log", maxBytes=1_000_000, backupCount=3, encoding="utf-8")
 
@@ -16,47 +17,6 @@ stream_handler.setLevel(logging.WARNING)
 stream_formatter = logging.Formatter("%(levelname)s - %(message)s")
 stream_handler.setFormatter(stream_formatter)
 logging.getLogger().addHandler(stream_handler)
-
-def load_configuration(configuration_path: Path):
-    """Load the configuration and validate its structure and category names."""
-    try:
-        with configuration_path.open("r", encoding="utf-8") as configuration_file:
-            configuration = json.load(configuration_file)
-            if not isinstance(configuration, dict):
-                raise ValueError("Config Datei enthält kein Dict")
-            elif "ordner" not in configuration or "kategorien" not in configuration or not isinstance(configuration["ordner"], str) or not isinstance(configuration["kategorien"], dict):
-                raise ValueError("Erforderliche Struktur oder Datentypen stimmen nicht")
-            for file_extension, category in configuration["kategorien"].items():
-                # An empty extension represents files without a suffix.
-                if not isinstance(file_extension, str) or (file_extension != "" and not file_extension.strip()):
-                    raise ValueError("JSON Datei enthält falsche Werte")
-                validate_category_name(category)
-
-            if not configuration["ordner"].strip():
-                raise ValueError("In der JSON fehlen Werte")
-
-            return configuration
-    except FileNotFoundError as error:
-        raise FileNotFoundError("Config Datei nicht gefunden") from error
-
-
-def validate_category_name(category: str) -> None:
-    """Validate a category name and raise ValueError if it is invalid."""
-    if not isinstance(category, str) or not category.strip():
-        raise ValueError("Falscher Datentyp oder leerer String")
-    # Check both path syntaxes even when running on only one operating system.
-    windows_path = PureWindowsPath(category)
-    posix_path = PurePosixPath(category)
-    if windows_path.is_absolute() or posix_path.is_absolute() or ".." in windows_path.parts or ".." in posix_path.parts or windows_path.drive != "" or "/" in category or "\\" in category:
-        raise ValueError("Pfadangabe enthalten")
-    if category == ".":
-        raise ValueError("Pfadangabe enthalten")
-
-
-def save_configuration(configuration_path: Path, configuration: dict) -> None:
-    """Write the complete configuration as UTF-8 JSON."""
-    with configuration_path.open("w", encoding="utf-8") as configuration_file:
-        json.dump(configuration, configuration_file, indent=4, ensure_ascii=False)
 
 
 def determine_category(file_path: Path, categories: dict[str, str]) -> str | None:
@@ -161,10 +121,11 @@ def display_analysis(analysis_result, percentages):
 
 if __name__ == "__main__":
     configuration_path = Path("config.json")
+    config_service = ConfigurationService()
 
     try:
 
-        configuration = load_configuration(configuration_path)
+        configuration = config_service.load_configuration(configuration_path)
 
     except FileNotFoundError as error:
         print(f"Datei nicht gefunden: {error}")
@@ -179,6 +140,7 @@ if __name__ == "__main__":
 
     categories = configuration["kategorien"]
     folder = Path(configuration["ordner"])
+
 
     try:
         organize_files(folder, categories)
