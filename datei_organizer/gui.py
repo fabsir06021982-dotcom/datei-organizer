@@ -7,7 +7,7 @@ from pathlib import Path
 import platform
 from datei_organizer.configuration_service import ConfigurationService
 from datei_organizer.analysis_service import AnalysisService
-from .main import organize_files
+from datei_organizer.organize_service import OrganizeService
 
 class OrganizerGUI():
     def __init__(self, root, configuration):
@@ -291,7 +291,8 @@ class OrganizerGUI():
             self.show_status(self.status_label, "Sortieren abgebrochen.")
             return
         self.show_status(self.status_label, "Sortierung bestätigt.")
-        self.sort_result = organize_files(self.selected_folder, self.configuration["kategorien"])
+        organize_service = OrganizeService()
+        self.sort_result = organize_service.organize_files(self.selected_folder, self.configuration["kategorien"])
         self.show_status(self.status_label, "Sortiervorgang abgeschlossen.")
         self.hide_widgets()
         self.unhide_sorting_table()

@@ -10,7 +10,7 @@ from rich.table import Table
 import json
 from datei_organizer.configuration_service import ConfigurationService
 from datei_organizer.analysis_service import AnalysisService
-from .main import organize_files
+from datei_organizer.organize_service import OrganizeService
 
 
 app = typer.Typer()
@@ -196,7 +196,8 @@ def sort_files(configuration_path: Annotated[Path, typer.Option("--config")] = P
     if not confirm_sorting:
         console.print("[cyan]Sortiervorgang abgebrochen.[/cyan]")
         return    
-    organize_files(selected_folder, configuration["kategorien"])
+    organize_service = OrganizeService()
+    organize_service.organize_files(selected_folder, configuration["kategorien"])
     console.print("[cyan]Sortierdurchlauf beendet.[/cyan]")
 
 def load_cli_configuration(configuration_path: Path) -> dict:
