@@ -9,7 +9,8 @@ from rich.prompt import Confirm, Prompt
 from rich.table import Table
 import json
 from datei_organizer.configuration_service import ConfigurationService
-from .main import analyze_files, calculate_percentages, organize_files
+from datei_organizer.analysis_service import AnalysisService
+from .main import organize_files
 
 
 app = typer.Typer()
@@ -64,13 +65,14 @@ def analyze(configuration_path: Annotated[Path, typer.Option("--config")] = Path
 
     console.print(Panel(str(selected_folder), title="Ausgewählter Ordner"))
     with console.status("Ordner wird analysiert..."):
-        analysis_result = analyze_files(selected_folder, configuration["kategorien"])
+        analysis_service = AnalysisService()
+        analysis_result = analysis_service.analyze_files(selected_folder, configuration["kategorien"])
 
     if not analysis_result:
         console.print("[cyan]Im ausgewählten Ordner wurden keine Dateien gefunden.[/cyan]")
         return
 
-    percentages = calculate_percentages(analysis_result)
+    percentages = analysis_service.calculate_percentages(analysis_result)
     console.print(create_analysis_table(analysis_result, percentages))
 
     if not Confirm.ask("Möchtest du die Kategoriezuordnungen bearbeiten?"):

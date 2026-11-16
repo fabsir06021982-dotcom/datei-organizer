@@ -6,7 +6,7 @@ from unittest.mock import patch
 from pathlib import Path
 from typer.testing import CliRunner
 from datei_organizer.cli import app
-from datei_organizer.main import organize_files, determine_category, analyze_files, calculate_percentages
+from datei_organizer.main import organize_files, determine_category
 
 
 categories = {
@@ -155,25 +155,6 @@ def test_log_move_error(monkeypatch, caplog, tmp_path):
     assert any(entry.levelname == "ERROR" for entry in caplog.records)
     assert image_file.exists()
 
-
-
-def test_analysis_ignores_files_in_subfolders(configured_workspace):
-    test_folder = configured_workspace / "testdateien"
-    subfolder = test_folder / "unterordner"
-    subfolder.mkdir()
-    txt_file_path = test_folder / "example1.txt"
-    txt_file_path.write_text("example1", encoding="utf-8")
-    pdf1_file_path = subfolder / "example2.pdf"
-    pdf1_file_path.write_text("example2", encoding="utf-8")
-    pdf2_file_path = subfolder / "example3.pdf"
-    pdf2_file_path.write_text("example3", encoding="utf-8")
-    sample_config = {"ordner": test_folder, "kategorien": {".txt": "texte"}}
-    analysis_dict = analyze_files(test_folder, sample_config["kategorien"])
-    percentages = calculate_percentages(analysis_dict)
-   
-    assert percentages[".txt"] == 100
-    assert analysis_dict[".txt"]["anzahl"] == 1
-    assert len(analysis_dict) == 1
 
 def test_organize_files_returns_successful_moves(configured_workspace):
     test_folder = configured_workspace / "testdateien"

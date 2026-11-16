@@ -110,44 +110,6 @@ def test_cli_analysis_keeps_assignment_after_three_invalid_attempts(configured_w
     assert configuration == expected_configuration
     assert txt_file_path.exists()
 
-def test_cli_missing_configuration(tmp_path):
-    folder = tmp_path / "arbeitsverzeichnis"
-    folder.mkdir()
-    output = subprocess.run([sys.executable, "-m", "datei_organizer.main"], cwd=folder, capture_output=True, text=True)
-    assert output.returncode == 1
-    assert "Datei nicht gefunden" in output.stdout
-
-def test_cli_invalid_json(tmp_path):
-    folder = tmp_path / "arbeitsverzeichnis"
-    folder.mkdir()
-    configuration_path = folder / "config.json"
-    configuration_path.write_text("XYZ", encoding="utf-8")
-    output = subprocess.run([sys.executable, "-m", "datei_organizer.main"], cwd=folder, capture_output=True, text=True)
-    assert output.returncode == 1
-    assert "JSON fehlerhaft" in output.stdout
-
-def test_cli_invalid_configuration_values(tmp_path):
-    working_directory = tmp_path / "arbeitsverzeichnis"
-    working_directory.mkdir()
-    configuration_path = working_directory / "config.json"
-    sample_configuration = {"ordner": 123, "kategorien": {".txt": "texte"}}
-    configuration_json = json.dumps(sample_configuration)
-    configuration_path.write_text(configuration_json, encoding="utf-8")
-    output = subprocess.run([sys.executable, "-m", "datei_organizer.main"], cwd=working_directory, capture_output=True, text=True)    
-    assert output.returncode == 1
-    assert "Werte in JSON nicht korrekt" in output.stdout
-
-def test_cli_missing_working_directory(tmp_path):
-    working_directory = tmp_path / "arbeitsverzeichnis"
-    working_directory.mkdir()
-    configuration_path = working_directory / "config.json"
-    sample_configuration = {"ordner": "existiert_nicht", "kategorien": {".txt": "texte"}}
-    configuration_json = json.dumps(sample_configuration)
-    configuration_path.write_text(configuration_json, encoding="utf-8")
-    output = subprocess.run([sys.executable, "-m", "datei_organizer.main"], cwd=working_directory, capture_output=True, text=True)    
-    assert output.returncode == 1
-    assert "Arbeitsverzeichnis nicht gefunden" in output.stdout
-
 
 def test_cli_sorting_declined_keeps_files_unchanged(configured_workspace):
     test_folder = configured_workspace / "testdateien"

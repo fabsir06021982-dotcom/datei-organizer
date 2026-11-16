@@ -2,8 +2,6 @@
 import logging
 from logging.handlers import RotatingFileHandler
 import shutil
-import json
-from datei_organizer.configuration_service import ConfigurationService
 
 handler = RotatingFileHandler(filename="Hauptlog.log", maxBytes=1_000_000, backupCount=3, encoding="utf-8")
 
@@ -84,69 +82,3 @@ def organize_files(folder: Path, categories: dict[str, str]) -> dict:
         
     return result_dict
 
-def analyze_files(folder_path: Path, categories: dict) -> dict:
-    """Count files by extension and look up their configured categories."""
-    analysis_result = {}
-    folder = Path(folder_path)
-    for path in folder.glob("*"):
-        if path.is_file():
-            file_extension = path.suffix.lower()
-            if file_extension in analysis_result:
-                analysis_result[file_extension]["anzahl"] += 1
-            else:
-                analysis_result[file_extension] = {"anzahl" : 1, "kategorie" : categories.get(file_extension)}
-    return analysis_result
-
-def calculate_percentages(analysis_result: dict) -> dict:
-    """Return each extension group's percentage of the analyzed files."""
-    total_files = sum(entry["anzahl"] for entry in analysis_result.values())
-    percentages = {}
-    for file_extension in analysis_result:
-        count = analysis_result[file_extension]["anzahl"]
-        percentage = count / total_files * 100
-        percentages.update({file_extension : percentage})
-    return percentages
-
-def display_analysis(analysis_result, percentages):
-    """Print counts, percentages, and categories for each extension group."""
-    for item in analysis_result:
-        count = analysis_result[item]["anzahl"]
-        percentage = percentages[item]
-        category = analysis_result[item]["kategorie"]
-        if item == "":
-            item = "ohne Endung"
-        if category is None:
-            category = "nicht zugeordnet"
-        print(f"Dateiendung: {item}, Anzahl: {count}, Prozent: {percentage:.2f}%, Kategorie: {category}")
-
-if __name__ == "__main__":
-    configuration_path = Path("config.json")
-    config_service = ConfigurationService()
-
-    try:
-
-        configuration = config_service.load_configuration(configuration_path)
-
-    except FileNotFoundError as error:
-        print(f"Datei nicht gefunden: {error}")
-        raise SystemExit(1)
-    except json.JSONDecodeError as error:
-        print(f"JSON fehlerhaft: {error}")
-        raise SystemExit(1)
-    except ValueError as error:
-        print(f"Werte in JSON nicht korrekt: {error}")
-        raise SystemExit(1)
-
-
-    categories = configuration["kategorien"]
-    folder = Path(configuration["ordner"])
-
-
-    try:
-        organize_files(folder, categories)
-    except FileNotFoundError as error:
-        print(f"Arbeitsverzeichnis nicht gefunden: {error}")
-        raise SystemExit(1)
-    analysis_result = analyze_files(folder, categories)
-    percentages = calculate_percentages(analysis_result)
-    display_analysis(analysis_result, percentages)

@@ -6,7 +6,8 @@ from tkinter import font
 from pathlib import Path
 import platform
 from datei_organizer.configuration_service import ConfigurationService
-from .main import analyze_files, calculate_percentages, organize_files
+from datei_organizer.analysis_service import AnalysisService
+from .main import organize_files
 
 class OrganizerGUI():
     def __init__(self, root, configuration):
@@ -264,12 +265,13 @@ class OrganizerGUI():
             self.hide_widgets()
             self.show_error(self.status_label, "Bitte zuerst einen Ordner auswählen!")
             return
-        self.analysis_result = analyze_files(self.selected_folder, self.configuration["kategorien"])
+        analysis_service = AnalysisService()
+        self.analysis_result = analysis_service.analyze_files(self.selected_folder, self.configuration["kategorien"])
         if not self.analysis_result:
             self.hide_widgets()
             self.show_status(self.status_label, "Im ausgewählten Ordner wurden keine Dateien gefunden.")
             return
-        self.percentages = calculate_percentages(self.analysis_result)
+        self.percentages = analysis_service.calculate_percentages(self.analysis_result)
         self.show_analysis_table()
         self.show_status(self.status_label, "Analyse abgeschlossen")
 
