@@ -22,4 +22,7 @@ requires = ["poetry-core>=2.0.0,<3.0.0"]
 build-backend = "poetry.core.masonry.api"
 
 [project.scripts]
-datei-organizer = "datei_organizer.cli:app"
+cli-organizer = "datei_organizer.cli:run_cli"
+
+[project.gui-scripts]
+gui-organizer = "datei_organizer.gui:run_gui"

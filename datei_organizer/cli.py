@@ -11,7 +11,7 @@ import json
 from datei_organizer.configuration_service import ConfigurationService
 from datei_organizer.analysis_service import AnalysisService
 from datei_organizer.organize_service import OrganizeService
-
+from datei_organizer.application import Application
 
 app = typer.Typer()
 console = Console()
@@ -223,6 +223,11 @@ def load_cli_configuration(configuration_path: Path) -> dict:
         console.print(f"[red italic]Zugriff verweigert: {configuration_path}[/red italic]", soft_wrap=True)
         raise typer.Exit(code=1)
 
+def run_cli() -> None:
+    application = Application()
+    application.start(app)
 
 if __name__ == "__main__":
-    app()
+    run_cli()
+
+    

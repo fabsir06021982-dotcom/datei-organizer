@@ -8,6 +8,8 @@ import platform
 from datei_organizer.configuration_service import ConfigurationService
 from datei_organizer.analysis_service import AnalysisService
 from datei_organizer.organize_service import OrganizeService
+from datei_organizer.application import Application
+
 
 class OrganizerGUI():
     def __init__(self, root, configuration):
@@ -358,14 +360,20 @@ class OrganizerGUI():
         label.configure(text=message, bootstyle="warning")
 
 
-if __name__ == "__main__":
-
+def start_gui() -> None:
     configuration_path = Path("config.json")
     config_service = ConfigurationService()
     configuration = config_service.load_configuration(configuration_path)
-
     root = tk.Tk()
     organizer_gui = OrganizerGUI(root, configuration)
-
-
     root.mainloop()
+
+
+def run_gui() -> None:
+    application = Application()
+    application.start(start_gui)
+
+
+if __name__ == "__main__":
+    run_gui()
+  
