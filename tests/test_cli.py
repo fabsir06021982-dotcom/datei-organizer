@@ -130,12 +130,31 @@ def test_cli_sorting_files_success(configured_workspace):
     result = runner.invoke(app, ["sortiere"], input="\ny\n")
     assert result.exit_code == 0
     assert "Sortierdurchlauf beendet." in result.output
+    assert "Verschoben" in result.output
     assert not txt_file_path.exists()
     destination = (test_folder / "texte" / "example.txt")
     assert destination.read_text(encoding="utf-8") == "Hallo. Das ist eine Testdatei"
     assert destination.exists()
     assert "example.txt" in result.output
     assert "texte\\example.txt" in result.output
+
+def test_cli_sorting_files_name_conflict(configured_workspace):
+    test_folder = configured_workspace / "testdateien"
+    txt_file_path = test_folder / "example.txt"
+    destination_path = test_folder / "texte"
+    destination_path.mkdir()
+    txt_file_path.write_text("Hallo. Das ist eine Testdatei", encoding="utf-8")
+    destination = (test_folder / "texte" / "example.txt")
+    destination.write_text("Alte Datei", encoding="utf-8")
+    result = runner.invoke(app, ["sortiere"], input="\ny\n")
+    assert result.exit_code == 0
+    assert "Namenskonflikt" in result.output
+    assert "example.txt" in result.output
+    assert "texte\\example.txt" in result.output
+    assert txt_file_path.exists()
+    assert txt_file_path.read_text(encoding="utf-8") == "Hallo. Das ist eine Testdatei"
+    assert destination.read_text(encoding="utf-8") == "Alte Datei"
+    assert (test_folder / "texte" / "example.txt").exists()
 
 def test_cli_sorting_displays_relative_paths_for_external_folder(tmp_path, configured_workspace):
     test_folder = tmp_path / "verzeichnis"

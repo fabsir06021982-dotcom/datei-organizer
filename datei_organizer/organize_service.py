@@ -2,10 +2,12 @@ import logging
 import shutil
 from pathlib import Path
 from typing import TypedDict
+import re
 
 class FilePaths(TypedDict):
     source: Path
     destination: Path
+    status: str
         
 
 class OrganizeService:
@@ -18,6 +20,7 @@ class OrganizeService:
         if category is None:
             return None
         return category
+    
 
     def organize_files(self, folder: Path, categories: dict[str, str]) -> dict[str, FilePaths]:
         """Move mapped files in the selected folder without overwriting existing files and return dict of successfully moved files"""
@@ -56,19 +59,23 @@ class OrganizeService:
 
             # Preserve the original file name in the destination folder.
             destination_file = destination_folder / file_path.name
-            # Keep existing destination files instead of overwriting them.
-            if destination_file.exists():
-                logging.info("Datei existiert bereits: %s", destination_file)
-                continue
+                           
             # Build the source path from the resolved base folder.
             source_file = absolute_folder / file_path.name
                         
-            try:
-                # Move the source file into its configured category folder.
-                shutil.move(source_file, destination_folder)
-                logging.info("Datei %s wurde erfolgreich nach %s verschoben", source_file, destination_folder)
-                result_dict[file_path.name] = {"source": source_file, "destination": destination_file}
-            except OSError:
-                logging.exception("Die Datei %s konnte nicht nach %s verschoben werden ", source_file, destination_folder)
-            
+            status = "moved"
+            if destination_file.exists():
+                log = f"Datei %s existiert bereits in %s"
+                status = "conflict"
+            else:
+                try:
+                    # Move the source file into its configured category folder.
+                    shutil.move(source_file, destination_folder)
+                    log = f"Datei %s wurde erfolgreich nach %s verschoben"
+                except OSError:
+                    logging.exception("Die Datei %s konnte nicht nach %s verschoben werden ", source_file, destination_folder)
+                    continue
+            logging.info(log, source_file, destination_folder)
+            result_dict[file_path.name] = {"source": source_file, "destination": destination_file, "status": status} 
+
         return result_dict

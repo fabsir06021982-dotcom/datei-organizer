@@ -49,7 +49,10 @@ def test_destination_file_exists(source_folder):
     destination_file = destination_folder / "meine_testdatei.txt"
     destination_file.write_text("Alter Inhalt", encoding="utf-8")
     organize_service = OrganizeService()
-    organize_service.organize_files(source_folder, categories)
+    result = organize_service.organize_files(source_folder, categories)
+    assert result["meine_testdatei.txt"].get("status") == "conflict"
+    assert result["meine_testdatei.txt"].get("source") == file_path
+    assert result["meine_testdatei.txt"].get("destination") == destination_file
     assert file_path.exists()
     assert destination_file.exists()
     assert file_path.read_text(encoding="utf-8") == "Neuer Inhalt"
@@ -87,9 +90,9 @@ def test_move_failure(source_folder, caplog):
 
     with patch("datei_organizer.organize_service.shutil.move", side_effect=OSError("Simulierter Fehler")):
         organize_service = OrganizeService()
-        organize_service.organize_files(source_folder, categories)
+        result = organize_service.organize_files(source_folder, categories)
 
-
+    assert "fehler.txt" not in result
     assert "Simulierter Fehler" in caplog.text
     assert file_path.exists()
 
@@ -166,9 +169,11 @@ def test_organize_files_returns_successful_moves(configured_workspace):
     assert "example1.txt" in test_result
     assert test_result["example1.txt"]["source"] == test_file_path1
     assert test_result["example1.txt"]["destination"] == test_destination_path1
+    assert test_result["example1.txt"]["status"] == "moved"
     assert "example2.jpg" in test_result
     assert test_result["example2.jpg"]["source"] == test_file_path2
     assert test_result["example2.jpg"]["destination"] == test_destination_path2
+    assert test_result["example2.jpg"]["status"] == "moved"
     assert not test_file_path1.exists()
     assert not test_file_path2.exists()
     assert test_destination_path1.exists()

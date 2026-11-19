@@ -183,11 +183,16 @@ def create_sorting_table(sorting_result: dict[str, FilePaths], selected_folder: 
     table.add_column("Dateiname", style="purple", no_wrap=True)
     table.add_column("Quelldatei", justify="right", style="magenta")
     table.add_column("Zieldatei", justify="right", style="green")
+    table.add_column("Status", justify="left", style="cyan")
 
-    for filename in sorting_result:
+    for filename in sorting_result:       
+        if sorting_result[filename].get("status") == "moved":
+            status = "Verschoben"
+        elif sorting_result[filename].get("status") == "conflict":
+            status = "Namenskonflikt" 
         source = sorting_result[filename]["source"].relative_to(selected_folder)
         destination = sorting_result[filename]["destination"].relative_to(selected_folder)
-        table.add_row(str(filename), str(source), str(destination))
+        table.add_row(str(filename), str(source), str(destination), status)
     return table
 
 
