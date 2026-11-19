@@ -1,11 +1,17 @@
 from pathlib import Path, PureWindowsPath, PurePosixPath
 import json
+from typing import TypedDict
+
+class ConfigurationData(TypedDict):
+    ordner: str
+    kategorien: dict[str, str]
+
 
 class ConfigurationService:
     """
     Handles loading, saving, and validation
     """
-    def load_configuration(self, configuration_path: Path) -> dict:
+    def load_configuration(self, configuration_path: Path) -> ConfigurationData:
         """Load the configuration and validate its structure and category names."""
         try:
             with configuration_path.open("r", encoding="utf-8") as configuration_file:
@@ -28,7 +34,7 @@ class ConfigurationService:
             raise FileNotFoundError("Config Datei nicht gefunden") from error
 
 
-    def save_configuration(self, configuration_path: Path, configuration: dict) -> None:
+    def save_configuration(self, configuration_path: Path, configuration: ConfigurationData) -> None:
         """Write the complete configuration as UTF-8 JSON."""
         try:
             serialized_configuration = json.dumps(configuration, indent=4, ensure_ascii=False)

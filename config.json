@@ -1,11 +1,11 @@
 {
-    "ordner": "C:\\Users\\fabsi\\Downloads",
+    "ordner": "C:\\Users\\fabsi\\projects\\python_projects\\datei-organizer\\testdateien",
     "kategorien": {
         ".pdf": "dokumente",
         ".mmd": "markdown",
-        ".xyz": "sonstiges",
+        ".xyz": "unbekannt",
         ".jpg": "bilder",
         ".ini": "ini",
-        ".txt": "texte"
+        ".txt": "dokumente"
     }
 }

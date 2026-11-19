@@ -8,9 +8,9 @@ from rich.panel import Panel
 from rich.prompt import Confirm, Prompt
 from rich.table import Table
 import json
-from datei_organizer.configuration_service import ConfigurationService
-from datei_organizer.analysis_service import AnalysisService
-from datei_organizer.organize_service import OrganizeService
+from datei_organizer.configuration_service import ConfigurationData, ConfigurationService
+from datei_organizer.analysis_service import AnalysisService, AnalysisEntry
+from datei_organizer.organize_service import OrganizeService, FilePaths
 from datei_organizer.application import Application
 
 app = typer.Typer()
@@ -50,7 +50,12 @@ def select_folder(default_folder: Path) -> Path:
 
     return selected_folder
 
-
+def load_configuration_and_select_folder(configuration_path: Path) -> tuple[ConfigurationData, Path]:
+    configuration = load_cli_configuration(configuration_path)
+    default_folder = Path(configuration["ordner"])
+    selected_folder = select_folder(default_folder)
+    console.print(Panel(str(selected_folder), title="Ausgewählter Ordner"))
+    return configuration, selected_folder
 
 
 @app.command("analyse")
@@ -58,12 +63,7 @@ def analyze(configuration_path: Annotated[Path, typer.Option("--config")] = Path
     """Analyze a folder."""
     console.print("🔎 [bold underline green]Analyse[/bold underline green]")
     console.print("[cyan]Welchen Ordner willst du analysieren?[/cyan]")
-    configuration = load_cli_configuration(configuration_path)
-
-    default_folder = Path(configuration["ordner"])
-    selected_folder = select_folder(default_folder)
-
-    console.print(Panel(str(selected_folder), title="Ausgewählter Ordner"))
+    configuration, selected_folder = load_configuration_and_select_folder(configuration_path)
     with console.status("Ordner wird analysiert..."):
         analysis_service = AnalysisService()
         analysis_result = analysis_service.analyze_files(selected_folder, configuration["kategorien"])
@@ -101,7 +101,7 @@ def analyze(configuration_path: Annotated[Path, typer.Option("--config")] = Path
     console.print("[green]✅ Erfolgreich gespeichert.[/green]")
 
 
-def edit_assignments(categories: dict, analysis_result: dict) -> dict:
+def edit_assignments(categories: dict[str, str], analysis_result: dict[str, AnalysisEntry]) -> dict[str, str]:
     """Edit a copy of the category assignments and return the draft."""
     # Work on a draft so changes can later be discarded.
     new_categories = categories.copy()
@@ -123,10 +123,10 @@ def edit_assignments(categories: dict, analysis_result: dict) -> dict:
                 continue
             console.print("[cyan]Zuordnung erfolgreich gelöscht.[/cyan]")
         else:
+            config_service = ConfigurationService()
             for _ in range(3):
                 new_assignment = Prompt.ask("[cyan]✅ Bitte einen gültigen Ordnernamen eingeben?[/cyan]")
                 cleaned_assignment = new_assignment.strip()
-                config_service = ConfigurationService()
                 try:
                     config_service.validate_category_name(cleaned_assignment)
                 except ValueError as error:
@@ -140,7 +140,7 @@ def edit_assignments(categories: dict, analysis_result: dict) -> dict:
     return new_categories
 
 
-def create_assignment_table(categories: dict, analysis_result: dict) -> Table:
+def create_assignment_table(categories: dict[str, str], analysis_result: dict[str, AnalysisEntry]) -> Table:
     """Build and return a table showing file extensions and their category assignments."""
     table = Table(box=box.SQUARE, title="Kategoriezuordnung")
     table.add_column("Dateiendung", style="purple", no_wrap=True)
@@ -158,7 +158,7 @@ def create_assignment_table(categories: dict, analysis_result: dict) -> Table:
     return table
 
 
-def create_analysis_table(analysis_result: dict, percentages: dict) -> Table:
+def create_analysis_table(analysis_result: dict[str, AnalysisEntry], percentages: dict[str, float]) -> Table:
     """Build and return a table containing the analysis results."""
     table = Table(box=box.SQUARE, title="Analyseergebnis")
     table.add_column("Dateiendung", style="purple", no_wrap=True)
@@ -177,17 +177,27 @@ def create_analysis_table(analysis_result: dict, percentages: dict) -> Table:
 
     return table
 
+def create_sorting_table(sorting_result: dict[str, FilePaths], selected_folder: Path) -> Table:
+    """Build and return a table containing the sorting results."""
+    table = Table(box=box.SQUARE, title="Sortierergebnis")
+    table.add_column("Dateiname", style="purple", no_wrap=True)
+    table.add_column("Quelldatei", justify="right", style="magenta")
+    table.add_column("Zieldatei", justify="right", style="green")
+
+    for filename in sorting_result:
+        source = sorting_result[filename]["source"].relative_to(selected_folder)
+        destination = sorting_result[filename]["destination"].relative_to(selected_folder)
+        table.add_row(str(filename), str(source), str(destination))
+    return table
+
+
 
 @app.command("sortiere")
 def sort_files(configuration_path: Annotated[Path, typer.Option("--config")] = Path("config.json")) -> None:
     """Sort files using the configured category assignments."""
     console.print("🔎 [bold underline green]Sortiere[/bold underline green]")
     console.print("[cyan]Welchen Ordner willst du sortieren lassen?[/cyan]")
-    configuration = load_cli_configuration(configuration_path)
-
-    default_folder = Path(configuration["ordner"])
-    selected_folder = select_folder(default_folder)
-    console.print(Panel(str(selected_folder), title="Ausgewählter Ordner"))
+    configuration, selected_folder = load_configuration_and_select_folder(configuration_path)
     console.print()    
     console.print("[italic magenta]Dateien werden anhand der gespeicherten Kategorien verschoben![/italic magenta]")
     console.print("[italic magenta]Nur Dateien im direkt ausgewählten Ordner werden sortiert[/italic magenta]")
@@ -197,10 +207,12 @@ def sort_files(configuration_path: Annotated[Path, typer.Option("--config")] = P
         console.print("[cyan]Sortiervorgang abgebrochen.[/cyan]")
         return    
     organize_service = OrganizeService()
-    organize_service.organize_files(selected_folder, configuration["kategorien"])
+    organize_result = organize_service.organize_files(selected_folder, configuration["kategorien"])
     console.print("[cyan]Sortierdurchlauf beendet.[/cyan]")
+    console.print(create_sorting_table(organize_result, selected_folder))
+   
 
-def load_cli_configuration(configuration_path: Path) -> dict:
+def load_cli_configuration(configuration_path: Path) -> ConfigurationData:
     """Load configuration and report CLI errors."""
     config_service = ConfigurationService()
     try:

@@ -1,13 +1,19 @@
 from pathlib import Path
+from typing import TypedDict
+
+class AnalysisEntry(TypedDict):
+    anzahl: int
+    kategorie: str | None
+
 
 
 class AnalysisService:
     """
     Calculates the analysis result and returns it
     """
-    def analyze_files(self, folder_path: Path, categories: dict) -> dict:
+    def analyze_files(self, folder_path: Path, categories: dict[str, str]) -> dict[str, AnalysisEntry]:
         """Count files by extension and look up their configured categories."""
-        analysis_result = {}
+        analysis_result: dict[str, AnalysisEntry] = {}
         folder = Path(folder_path)
         for path in folder.glob("*"):
             if path.is_file():
@@ -19,7 +25,7 @@ class AnalysisService:
         return analysis_result
 
 
-    def calculate_percentages(self, analysis_result: dict) -> dict:
+    def calculate_percentages(self, analysis_result: dict[str, AnalysisEntry]) -> dict[str, float]:
         """Return each extension group's percentage of the analyzed files."""
         total_files = sum(entry["anzahl"] for entry in analysis_result.values())
         percentages = {}

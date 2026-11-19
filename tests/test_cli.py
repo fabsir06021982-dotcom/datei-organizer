@@ -131,8 +131,30 @@ def test_cli_sorting_files_success(configured_workspace):
     assert result.exit_code == 0
     assert "Sortierdurchlauf beendet." in result.output
     assert not txt_file_path.exists()
-    assert (test_folder / "texte" / "example.txt").read_text(encoding="utf-8") == "Hallo. Das ist eine Testdatei"
-    assert (test_folder / "texte" / "example.txt").exists()
+    destination = (test_folder / "texte" / "example.txt")
+    assert destination.read_text(encoding="utf-8") == "Hallo. Das ist eine Testdatei"
+    assert destination.exists()
+    assert "example.txt" in result.output
+    assert "texte\\example.txt" in result.output
+
+def test_cli_sorting_displays_relative_paths_for_external_folder(tmp_path, configured_workspace):
+    test_folder = tmp_path / "verzeichnis"
+    test_folder.mkdir()
+    txt_file_path = test_folder / "example.txt"
+    txt_file_path.write_text("Hallo. Das ist eine Testdatei", encoding="utf-8")
+    configuration_path = configured_workspace / "config.json"
+    sample_config = {"ordner": str(test_folder), "kategorien": {".txt": "texte"}}
+    configuration_json = json.dumps(sample_config)
+    configuration_path.write_text(configuration_json, encoding="utf-8")
+    result = runner.invoke(app, ["sortiere"], input="\ny\n")
+    assert result.exit_code == 0
+    assert "Sortierdurchlauf beendet." in result.output
+    assert not txt_file_path.exists()
+    destination = (test_folder / "texte" / "example.txt")
+    assert destination.read_text(encoding="utf-8") == "Hallo. Das ist eine Testdatei"
+    assert destination.exists()
+    assert "example.txt" in result.output
+    assert "texte\\example.txt" in result.output
 
 
 def test_cli_analyze_empty_folder(configured_workspace):
