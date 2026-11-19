@@ -177,6 +177,38 @@ def create_analysis_table(analysis_result: dict[str, AnalysisEntry], percentages
 
     return table
 
+def resolve_sorting_conflicts(sorting_result: dict[str, FilePaths], selected_folder: Path, organize_service: OrganizeService) -> None:
+    """Ask how to handle each conflict and update its result entry."""
+    for entry in sorting_result.values():
+        if entry["status"] != "conflict":
+            continue
+
+        source = entry["source"]
+        destination = entry["destination"]
+
+        console.print(f"Quelle: {source.relative_to(selected_folder)}")
+        console.print(f"Belegtes Ziel: {destination.relative_to(selected_folder)}")
+        answer = Prompt.ask(
+            "Beide Dateien behalten und die eingehende Datei umbenennen?",
+            choices=["ja", "nein"],
+            case_sensitive=False,
+        )
+
+        if answer.lower() == "nein":
+            entry["status"] = "skipped"
+            continue
+
+        try:
+            actual_destination = organize_service.move_with_unique_name(source, destination)
+        except OSError as error:
+            entry["status"] = "failed"
+            console.print(f"Datei konnte nicht verschoben werden: {error}")
+            continue
+
+        entry["destination"] = actual_destination
+        entry["status"] = "moved"
+
+
 def create_sorting_table(sorting_result: dict[str, FilePaths], selected_folder: Path) -> Table:
     """Build and return a table containing the sorting results."""
     table = Table(box=box.SQUARE, title="Sortierergebnis")
@@ -184,17 +216,17 @@ def create_sorting_table(sorting_result: dict[str, FilePaths], selected_folder: 
     table.add_column("Quelldatei", justify="right", style="magenta")
     table.add_column("Zieldatei", justify="right", style="green")
     table.add_column("Status", justify="left", style="cyan")
+    status_labels = {"moved": "Verschoben", "skipped": "Übersprungen", "conflict": "Namenskonflikt", "failed": "Fehlgeschlagen"}
 
-    for filename in sorting_result:       
-        if sorting_result[filename].get("status") == "moved":
-            status = "Verschoben"
-        elif sorting_result[filename].get("status") == "conflict":
-            status = "Namenskonflikt" 
-        source = sorting_result[filename]["source"].relative_to(selected_folder)
-        destination = sorting_result[filename]["destination"].relative_to(selected_folder)
-        table.add_row(str(filename), str(source), str(destination), status)
+    for filename, entry in sorting_result.items():
+        source = entry["source"].relative_to(selected_folder)
+        destination = (str(entry["destination"].relative_to(selected_folder))
+            if entry["status"] == "moved"
+            else ""
+        )
+        table.add_row(filename, str(source), destination, status_labels[entry["status"]])
+
     return table
-
 
 
 @app.command("sortiere")
@@ -212,9 +244,11 @@ def sort_files(configuration_path: Annotated[Path, typer.Option("--config")] = P
         console.print("[cyan]Sortiervorgang abgebrochen.[/cyan]")
         return    
     organize_service = OrganizeService()
-    organize_result = organize_service.organize_files(selected_folder, configuration["kategorien"])
-    console.print("[cyan]Sortierdurchlauf beendet.[/cyan]")
+    organize_result = organize_service.organize_files(selected_folder, configuration["kategorien"])   
+    resolve_sorting_conflicts(organize_result, selected_folder, organize_service)
     console.print(create_sorting_table(organize_result, selected_folder))
+    console.print("[cyan]Sortierdurchlauf beendet.[/cyan]")
+
    
 
 def load_cli_configuration(configuration_path: Path) -> ConfigurationData:

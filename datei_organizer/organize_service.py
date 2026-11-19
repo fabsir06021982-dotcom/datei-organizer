@@ -1,8 +1,8 @@
+
 import logging
 import shutil
 from pathlib import Path
 from typing import TypedDict
-import re
 
 class FilePaths(TypedDict):
     source: Path
@@ -20,7 +20,33 @@ class OrganizeService:
         if category is None:
             return None
         return category
-    
+
+
+    def move_with_unique_name(self, source: Path, destination: Path) -> Path:
+        """Move a file to the first available numbered name in the target folder."""
+        number = 2
+
+        while True:
+            candidate = destination.with_name(
+                f"{destination.stem}_{number}{destination.suffix}"
+            )
+
+            try:
+                # Reserve the name so an existing file cannot be overwritten.
+                candidate.touch(exist_ok=False)
+            except FileExistsError:
+                number += 1
+                continue
+
+            try:
+                shutil.move(source, candidate)
+            except OSError:
+                candidate.unlink(missing_ok=True)
+                raise
+
+            logging.info("Datei %s wurde nach %s verschoben", source, candidate)
+            return candidate
+
 
     def organize_files(self, folder: Path, categories: dict[str, str]) -> dict[str, FilePaths]:
         """Move mapped files in the selected folder without overwriting existing files and return dict of successfully moved files"""

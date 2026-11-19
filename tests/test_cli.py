@@ -138,6 +138,27 @@ def test_cli_sorting_files_success(configured_workspace):
     assert "example.txt" in result.output
     assert "texte\\example.txt" in result.output
 
+def test_move_with_unique_name_uses_next_free_number_when_number_two_is_taken(configured_workspace):
+    test_folder = configured_workspace / "testdateien"
+    test_file_path = test_folder / "bericht.txt"
+    destination_path = test_folder / "texte"
+    destination_path.mkdir()
+    test_file_path.write_text("Hallo. Das ist eine Testdatei", encoding="utf-8")
+    destination_file1 = (test_folder / "texte" / "bericht.txt")
+    destination_file2 = (test_folder / "texte" / "bericht_2.txt")
+    destination_file1.write_text("Datei1", encoding="utf-8")
+    destination_file2.write_text("Datei2", encoding="utf-8")
+    result = runner.invoke(app, ["sortiere"], input="\ny\nvielleicht\nJa\n")
+    assert result.exit_code == 0
+    assert not test_file_path.exists()
+    assert destination_file1.read_text(encoding="utf-8") == "Datei1"
+    assert destination_file2.read_text(encoding="utf-8") == "Datei2"
+    assert destination_file1.exists()
+    assert destination_file2.exists()
+    destination_file3 = (test_folder / "texte" / "bericht_3.txt")
+    assert destination_file3.read_text(encoding="utf-8") == "Hallo. Das ist eine Testdatei"
+    assert destination_file3.exists()
+
 def test_cli_sorting_files_name_conflict(configured_workspace):
     test_folder = configured_workspace / "testdateien"
     txt_file_path = test_folder / "example.txt"
@@ -146,9 +167,9 @@ def test_cli_sorting_files_name_conflict(configured_workspace):
     txt_file_path.write_text("Hallo. Das ist eine Testdatei", encoding="utf-8")
     destination = (test_folder / "texte" / "example.txt")
     destination.write_text("Alte Datei", encoding="utf-8")
-    result = runner.invoke(app, ["sortiere"], input="\ny\n")
+    result = runner.invoke(app, ["sortiere"], input="\ny\nvielleicht\nNein\n")
     assert result.exit_code == 0
-    assert "Namenskonflikt" in result.output
+    assert "Übersprungen" in result.output
     assert "example.txt" in result.output
     assert "texte\\example.txt" in result.output
     assert txt_file_path.exists()

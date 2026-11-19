@@ -64,10 +64,11 @@ class OrganizerGUI():
         self.save_default_var = tk.BooleanVar(self.root, value=False)
         self.folder_checkbutton = ttk.Checkbutton(self.root, variable=self.save_default_var, text="Ausgewählten Ordner als Standard speichern", takefocus=0)
         self.sort_button = ttk.Button(self.root, text="Sortieren", command=self.sort_files)
-        self.sorting_tree = ttk.Treeview(self.root, columns=["filename", "source path", "destination path"], show="headings", style="info.Treeview")
+        self.sorting_tree = ttk.Treeview(self.root, columns=["filename", "source path", "destination path", "status"], show="headings", style="info.Treeview")
         self.sorting_tree.heading("filename", text="Dateiname")
         self.sorting_tree.heading("source path", text="Quelldatei")
         self.sorting_tree.heading("destination path", text="Zieldatei")
+        self.sorting_tree.heading("status", text="Status")
         self.label.grid(row=1, column=1, pady=15)
         self.button.grid(row=2, column=1, pady=5)
         self.folder_label.grid(row=3, column=1, pady=5)
@@ -295,10 +296,30 @@ class OrganizerGUI():
         self.show_status(self.status_label, "Sortierung bestätigt.")
         organize_service = OrganizeService()
         self.sort_result = organize_service.organize_files(self.selected_folder, self.configuration["kategorien"])
+        self.resolve_sorting_conflicts()
         self.show_status(self.status_label, "Sortiervorgang abgeschlossen.")
         self.hide_widgets()
         self.unhide_sorting_table()
         self.show_sort_result()
+
+
+    def resolve_sorting_conflicts(self) -> None:
+        for entry in self.sort_result:
+            if self.sort_result[entry]["status"] == "moved":
+                continue
+            if self.sort_result[entry]["status"] == "conflict":
+                sorting_confirmed = messagebox.askyesno(title=f"Trotzdem verschieben (ja) oder überspringen? (nein)", detail=f"Die Datei {self.sort_result[entry]['source']} ist bereits in {self.sort_result[entry]['destination']} enthalten", icon=messagebox.QUESTION, default=messagebox.NO, parent=self.root)
+                if not sorting_confirmed:
+                    self.sort_result[entry]["status"] = "skipped"
+                    continue
+                organize_service = OrganizeService()
+                try:
+                    actual_destination = organize_service.move_with_unique_name(self.sort_result[entry]["source"], self.sort_result[entry]["destination"])
+                except OSError as error:
+                    self.sort_result[entry]["status"] = "failed"
+                    continue
+                self.sort_result[entry]["destination"] = actual_destination
+                self.sort_result[entry]["status"] = "moved"
 
 
     def show_sort_result(self) -> None:
@@ -315,7 +336,15 @@ class OrganizerGUI():
         for filename, data in self.sort_result.items():
             source_path = data["source"]
             destination_path = data["destination"]
-            item_id = self.sorting_tree.insert("", "end", values=(filename, source_path, destination_path))
+            if data["status"] == "skipped":
+                status = "Übersprungen"
+                destination_path = ""
+            if data["status"] == "moved":
+                status = "Verschoben"
+            if data["status"] == "failed":
+                status = "Fehlgeschlagen"
+                destination_path = ""
+            item_id = self.sorting_tree.insert("", "end", values=(filename, source_path, destination_path, status))
             self.filename_by_item[item_id] = filename
         self.sorting_tree.grid()
 
