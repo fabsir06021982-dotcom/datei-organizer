@@ -1,7 +1,7 @@
 [project]
 name = "datei-organizer"
 version = "0.1.0"
-description = "Mit dem datei-organizer kann man bequem innerhalb eines Ordner Dateien analysieren und dieser einer bestimmten Kategoriegruppe zuordnen. Anschließend wird die Dateien in die zuvor angelegten Kategoriegruppen einsortiert."
+description = "Dateien nach Kategorien organisieren – mit Desktop-Oberfläche, CLI, Sortiervorschau und Rückgängig-Funktion."
 authors = [
     {name = "Fabian Sirtl"}
 ]
@@ -21,6 +21,10 @@ dev = [
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]
 build-backend = "poetry.core.masonry.api"
+
+[project.urls]
+Repository = "https://github.com/fabsir06021982-dotcom/datei-organizer"
+Issues = "https://github.com/fabsir06021982-dotcom/datei-organizer/issues"
 
 [project.scripts]
 cli-organizer = "datei_organizer.cli:run_cli"

@@ -1,16 +1,23 @@
-# Datei-Organizer
+# Advanced File Organizer
 
 Ordner analysieren, Sortierpläne prüfen, Dateien nach Kategorien verschieben und einen protokollierten Lauf rückgängig machen. CLI und Desktop-Oberfläche verwenden dieselben Einstellungen und denselben Sortierservice.
 
-## Start
-
 ![Startansicht mit Seitenleiste und Ordnerauswahl](docs/gui-start.png)
 
-Im Projektordner mit Python und Poetry:
+## Schnellstart
+
+Voraussetzungen sind Python ab 3.10 mit Tk-Unterstützung und Poetry 2. Die folgenden Befehle installieren das Projekt und starten die grafische Oberfläche:
 
 ```console
+git clone https://github.com/fabsir06021982-dotcom/datei-organizer.git
+cd datei-organizer
 poetry install
 poetry run gui-organizer
+```
+
+Wähle zum Ausprobieren einen Ordner mit einigen Beispieldateien. Analysiere den Ordner, prüfe die Zuordnungen und öffne die Sortiervorschau. Für den Einstieg im Terminal zeigt dieser Befehl die verfügbaren Aktionen:
+
+```console
 poetry run cli-organizer --help
 ```
 
