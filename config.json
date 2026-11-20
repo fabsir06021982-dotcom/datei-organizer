@@ -7,5 +7,19 @@
         ".jpg": "bilder",
         ".ini": "ini",
         ".txt": "dokumente"
+    },
+    "optionen": {
+        "recursive": false,
+        "max_depth": null,
+        "extensions": "",
+        "min_bytes": null,
+        "max_bytes": null,
+        "modified_from": "",
+        "modified_until": "",
+        "hidden": false,
+        "preserve_structure": false,
+        "conflict": "ask",
+        "theme": "nord-dark",
+        "logging": true
     }
 }

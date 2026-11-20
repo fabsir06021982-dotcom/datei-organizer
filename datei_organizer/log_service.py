@@ -1,15 +1,20 @@
+"""Application logging is independent of the undo journal and of host loggers."""
 import logging
 from logging.handlers import RotatingFileHandler
 
-def prepare_logging() -> None:
-    handler = RotatingFileHandler(filename="Hauptlog.log", maxBytes=1_000_000, backupCount=3, encoding="utf-8")
-    handler.setLevel(logging.INFO)
-    formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
-    handler.setFormatter(formatter)
-    logging.getLogger().addHandler(handler)
-    logging.getLogger().setLevel(logging.INFO)
-    stream_handler = logging.StreamHandler()
-    stream_handler.setLevel(logging.WARNING)
-    stream_formatter = logging.Formatter("%(levelname)s - %(message)s")
-    stream_handler.setFormatter(stream_formatter)
-    logging.getLogger().addHandler(stream_handler)
+log = logging.getLogger("datei_organizer")
+log.addHandler(logging.NullHandler())
+
+
+def configure_logging(enabled: bool) -> None:
+    for handler in list(log.handlers):
+        if isinstance(handler, RotatingFileHandler):
+            log.removeHandler(handler)
+            handler.close()
+    log.disabled = not enabled
+    if enabled:
+        handler = RotatingFileHandler("Hauptlog.log", maxBytes=1_000_000, backupCount=3,
+                                      encoding="utf-8", delay=True)
+        handler.setFormatter(logging.Formatter("%(asctime)s - %(levelname)s - %(message)s"))
+        log.addHandler(handler)
+        log.setLevel(logging.INFO)

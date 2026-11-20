@@ -34,7 +34,8 @@ def test_move_file(source_folder):
 
     file_path.write_text("Hallo Welt", encoding="utf-8")
     organize_service = OrganizeService()
-    organize_service.organize_files(source_folder, categories)
+    plan = organize_service.preview_sorting(source_folder, categories)
+    organize_service.organize_files(source_folder, plan)
     destination_folder = source_folder / "texte"
     destination_file = destination_folder / "meine_testdatei.txt"
     assert destination_file.exists()
@@ -49,7 +50,8 @@ def test_destination_file_exists(source_folder):
     destination_file = destination_folder / "meine_testdatei.txt"
     destination_file.write_text("Alter Inhalt", encoding="utf-8")
     organize_service = OrganizeService()
-    result = organize_service.organize_files(source_folder, categories)
+    plan = organize_service.preview_sorting(source_folder, categories)
+    result = organize_service.organize_files(source_folder, plan)
     assert result["meine_testdatei.txt"].get("status") == "conflict"
     assert result["meine_testdatei.txt"].get("source") == file_path
     assert result["meine_testdatei.txt"].get("destination") == destination_file
@@ -63,7 +65,8 @@ def test_folder_does_not_exist(tmp_path):
 
     with pytest.raises(FileNotFoundError):
         organize_service = OrganizeService()
-        organize_service.organize_files(folder, categories)
+        plan = organize_service.preview_sorting(folder, categories)
+        organize_service.organize_files(folder, plan)
 
 def test_skip_subfolders(source_folder):
 
@@ -72,7 +75,8 @@ def test_skip_subfolders(source_folder):
     file_path = subfolder / "test.txt"
     file_path.write_text("testdatei", encoding="utf-8")
     organize_service = OrganizeService()
-    organize_service.organize_files(source_folder, categories)
+    plan = organize_service.preview_sorting(source_folder, categories)
+    organize_service.organize_files(source_folder, plan)
     destination_file = source_folder / "texte" / "test.txt"
     assert not destination_file.exists()
     assert subfolder.exists()
@@ -90,9 +94,10 @@ def test_move_failure(source_folder, caplog):
 
     with patch("datei_organizer.organize_service.shutil.move", side_effect=OSError("Simulierter Fehler")):
         organize_service = OrganizeService()
-        result = organize_service.organize_files(source_folder, categories)
+        plan = organize_service.preview_sorting(source_folder, categories)
+        result = organize_service.organize_files(source_folder, plan)
 
-    assert "fehler.txt" not in result
+    assert result["fehler.txt"]["status"] == "failed"
     assert "Simulierter Fehler" in caplog.text
     assert file_path.exists()
 
@@ -102,7 +107,8 @@ def test_create_folder_failure(source_folder, caplog):
 
     with patch("pathlib.Path.mkdir", side_effect=OSError("Ordnerfehler")):
         organize_service = OrganizeService()
-        organize_service.organize_files(source_folder, categories)
+        plan = organize_service.preview_sorting(source_folder, categories)
+        organize_service.organize_files(source_folder, plan)
 
     assert "Ordnerfehler" in caplog.text
     assert file_path.exists()
@@ -124,7 +130,8 @@ def test_symlink_outside_folder(tmp_path):
 
     with pytest.raises(ValueError):
         organize_service = OrganizeService()
-        organize_service.organize_files(working_directory, categories)
+        plan = organize_service.preview_sorting(working_directory, categories)
+        organize_service.organize_files(working_directory, plan)
 
     assert image_file.exists()
     assert not (external_directory / "bild.png").exists()
@@ -147,7 +154,8 @@ def test_log_move_error(monkeypatch, caplog, tmp_path):
     image_file = folder / "bild.png"
     image_file.write_text("Bsp", encoding="utf-8")
     organize_service = OrganizeService()
-    organize_service.organize_files(folder, categories)
+    plan = organize_service.preview_sorting(folder, categories)
+    organize_service.organize_files(folder, plan)
 
     assert "Testfehler beim verschieben" in caplog.text
     assert any(entry.levelname == "ERROR" for entry in caplog.records)
@@ -162,7 +170,8 @@ def test_organize_files_returns_successful_moves(configured_workspace):
     test_file_path2.write_text("example2", encoding="utf-8")
     categories = {".txt" : "texte", ".jpg" : "bilder"}
     organize_service = OrganizeService()    
-    test_result = organize_service.organize_files(test_folder, categories)
+    plan = organize_service.preview_sorting(test_folder, categories)
+    test_result = organize_service.organize_files(test_folder, plan)
     test_destination_path1 = test_folder / "texte" / "example1.txt"
     test_destination_path2 = test_folder / "bilder" / "example2.jpg"
     assert len(test_result) == 2
@@ -201,3 +210,23 @@ def test_unknown_extension():
     organize_service = OrganizeService()
     result = organize_service.determine_category(Path("archiv.xyz"), categories)
     assert result is None
+def test_confirmed_plan_detects_new_conflict_and_ignores_new_source(source_folder):
+    service = OrganizeService()
+    source = source_folder / "bericht.txt"
+    source.write_text("Neu")
+    plan = service.preview_sorting(source_folder, categories)
+    destination = plan[source.name]["destination"]
+    assert plan[source.name]["status"] == "planned"
+    assert not destination.parent.exists()
+
+    destination.parent.mkdir()
+    destination.write_text("Alt")
+    late_source = source_folder / "spaeter.txt"
+    late_source.write_text("Später", encoding="utf-8")
+
+    result = service.organize_files(source_folder, plan)
+    assert set(result) == {source.name}
+    assert result[source.name]["status"] == "conflict"
+    assert source.read_text() == "Neu"
+    assert destination.read_text() == "Alt"
+    assert late_source.exists()

@@ -2,32 +2,37 @@ from typing import Annotated
 from pathlib import Path
 import typer
 
-from rich import box
-from rich.console import Console
-from rich.panel import Panel
+from rich.text import Text
 from rich.prompt import Confirm, Prompt
 from rich.table import Table
 import json
 from datei_organizer.configuration_service import ConfigurationData, ConfigurationService
 from datei_organizer.analysis_service import AnalysisService, AnalysisEntry
-from datei_organizer.organize_service import OrganizeService, FilePaths
+from datei_organizer.organize_service import OrganizeService
 from datei_organizer.application import Application
+from .scanning import Options
+from .cli_view import console, file_progress, heading, paths_panel, report, sorting_table
+from .log_service import configure_logging, log
 
-app = typer.Typer()
-console = Console()
+app = typer.Typer(help="Dateien analysieren, Sortierpläne prüfen und Verschiebungen zurücknehmen.",
+                  add_completion=False, pretty_exceptions_show_locals=False)
 
 
 @app.callback(invoke_without_command=True)
 def main(ctx: typer.Context) -> None:
-    """Start the file organizer."""
-    console.print()
-    console.print("🚀 [bold underline green]Willkommen im Datei-Organizer![/bold underline green]")
-    console.print("[cyan]❓ Nutze --help für eine Liste aller Befehle[/cyan]")
-    console.print()
-    console.print()
-
+    sections = {"analyse": "Analyse", "sortiere": "Sortierung", "rueckgaengig": "Rücknahme"}
+    heading(sections.get(ctx.invoked_subcommand, "Übersicht"))
     if ctx.invoked_subcommand is None:
-        console.print("[red italic]Kein Befehl übergeben. Beende...[/red italic] ➜🚪")
+        commands = report("Befehle")
+        commands.add_column("Aufruf", style="cyan")
+        commands.add_column("Funktion")
+        commands.add_row("analyse", "Dateitypen, Anteile und Kategorien anzeigen")
+        commands.add_row("sortiere --dry-run", "Ziele und Konflikte vorab prüfen")
+        commands.add_row("sortiere", "Vorschau bestätigen und Dateien verschieben")
+        commands.add_row("rueckgaengig", "Letzten Lauf für einen Ordner zurücknehmen")
+        console.print(commands)
+        console.print("[muted]Aufruf: cli-organizer BEFEHL   ·   Hilfe: cli-organizer --help[/muted]")
+
 
 def select_folder(default_folder: Path) -> Path:
     """
@@ -35,38 +40,39 @@ def select_folder(default_folder: Path) -> Path:
     """
     default_folder = default_folder.resolve()
 
-    console.print(Panel(str(default_folder), title="Standardordner aus der Konfiguration"))
+    console.print(paths_panel("Ordnerauswahl", [("Vorgabe", default_folder)]))
     folder_input = Prompt.ask("[cyan]Neuen Ordner eingeben oder Enter ⏎ für den Standardordner[/cyan]")
 
     if folder_input == "":
         selected_folder = default_folder
-        console.print("[cyan]Standardordner aus der Konfiguration wird verwendet.[/cyan]")
+
     else:
         selected_folder = Path(folder_input).resolve()
 
     if not selected_folder.is_dir():
-        console.print("[red italic]Der ausgewählte Ordner ist ungültig![/red italic]")
+        console.print("[danger]Der ausgewählte Ordner ist ungültig![/danger]")
         raise typer.Abort()
 
     return selected_folder
 
 def load_configuration_and_select_folder(configuration_path: Path) -> tuple[ConfigurationData, Path]:
     configuration = load_cli_configuration(configuration_path)
+    configure_logging(Options.load(configuration.get("optionen", {})).logging)
+    log.info("CLI-Konfiguration geladen: %s", configuration_path)
     default_folder = Path(configuration["ordner"])
     selected_folder = select_folder(default_folder)
-    console.print(Panel(str(selected_folder), title="Ausgewählter Ordner"))
+    if selected_folder != default_folder.resolve():
+        console.print(Text(f"Ausgewählt: {selected_folder}", style="muted"))
     return configuration, selected_folder
 
 
 @app.command("analyse")
 def analyze(configuration_path: Annotated[Path, typer.Option("--config")] = Path("config.json")) -> None:
-    """Analyze a folder."""
-    console.print("🔎 [bold underline green]Analyse[/bold underline green]")
-    console.print("[cyan]Welchen Ordner willst du analysieren?[/cyan]")
+    """Dateitypen zählen und Kategoriezuordnungen bearbeiten."""
     configuration, selected_folder = load_configuration_and_select_folder(configuration_path)
-    with console.status("Ordner wird analysiert..."):
+    with file_progress("Analyse") as progress:
         analysis_service = AnalysisService()
-        analysis_result = analysis_service.analyze_files(selected_folder, configuration["kategorien"])
+        analysis_result = analysis_service.analyze_files(selected_folder, configuration["kategorien"], Options.load(configuration.get("optionen", {})), protected_paths=(configuration_path,), progress=progress, on_error=lambda path, error: console.print(f"{path}: {error}"))
 
     if not analysis_result:
         console.print("[cyan]Im ausgewählten Ordner wurden keine Dateien gefunden.[/cyan]")
@@ -79,17 +85,9 @@ def analyze(configuration_path: Annotated[Path, typer.Option("--config")] = Path
         console.print("[cyan]Kategoriezuordnungen werden nicht bearbeitet. Ende.[/cyan]")
         return
     console.print()
-    console.print()
-    console.print("[bold underline magenta]📁 Kategoriezuordnungen[/bold underline magenta]")
-    console.print()
     new_assignments = edit_assignments(configuration["kategorien"], analysis_result)
     console.print()
-    console.print()
-    console.print("[bold underline green]Neue Zuordnungstabelle[/bold underline green]")
-    console.print()
     console.print(create_assignment_table(new_assignments, analysis_result))
-    console.print()
-    console.print()
     save_assignment = Confirm.ask("[cyan]Sollen die neuen Zuordnungen dauerhaft gespeichert werden?[/cyan]")
     console.print()
     if not save_assignment:
@@ -98,7 +96,7 @@ def analyze(configuration_path: Annotated[Path, typer.Option("--config")] = Path
     configuration["kategorien"] = new_assignments
     config_service = ConfigurationService()
     config_service.save_configuration(configuration_path, configuration)
-    console.print("[green]✅ Erfolgreich gespeichert.[/green]")
+    console.print("[green]Erfolgreich gespeichert.[/green]")
 
 
 def edit_assignments(categories: dict[str, str], analysis_result: dict[str, AnalysisEntry]) -> dict[str, str]:
@@ -112,38 +110,38 @@ def edit_assignments(categories: dict[str, str], analysis_result: dict[str, Anal
         if assignment is None:
             assignment = "nicht zugeordnet"
 
-        change_assignment = Confirm.ask(f"[cyan]📄 -> 📁 Möchten Sie die aktuelle Zuordnung von Dateiendung {display_extension} zu Ordner {assignment} ändern?[/cyan]")
+        change_assignment = Confirm.ask(Text(f"{display_extension} → {assignment}: Zuordnung ändern?"))
         if not change_assignment:
             continue
-        delete_assignment = Confirm.ask("[cyan]✂️ Soll die Zuordnung gelöscht werden?[/cyan]")
+        delete_assignment = Confirm.ask("[cyan]Zuordnung löschen?[/cyan]")
         if delete_assignment:
             delete_output = new_categories.pop(file_extension, None)
             if delete_output is None:
-                console.print("[red italic]Löschen nicht möglich. Kategorienzuordnung fehlt.[/red italic]")
+                console.print("[danger]Löschen nicht möglich. Kategorienzuordnung fehlt.[/danger]")
                 continue
             console.print("[cyan]Zuordnung erfolgreich gelöscht.[/cyan]")
         else:
             config_service = ConfigurationService()
             for _ in range(3):
-                new_assignment = Prompt.ask("[cyan]✅ Bitte einen gültigen Ordnernamen eingeben?[/cyan]")
+                new_assignment = Prompt.ask("[cyan]Neuer Ordnername[/cyan]")
                 cleaned_assignment = new_assignment.strip()
                 try:
                     config_service.validate_category_name(cleaned_assignment)
                 except ValueError as error:
-                    console.print(f"[red italic]{error}[/red italic]")
+                    console.print(Text(str(error), style="danger"))
                     continue
                 new_categories[file_extension] = cleaned_assignment
                 break
             else:
-                console.print("[red italic]Keinen gültigen Ordnernamen eingegeben.[/red italic]")
+                console.print("[danger]Keinen gültigen Ordnernamen eingegeben.[/danger]")
                 continue
     return new_categories
 
 
 def create_assignment_table(categories: dict[str, str], analysis_result: dict[str, AnalysisEntry]) -> Table:
     """Build and return a table showing file extensions and their category assignments."""
-    table = Table(box=box.SQUARE, title="Kategoriezuordnung")
-    table.add_column("Dateiendung", style="purple", no_wrap=True)
+    table = report("Kategoriezuordnung")
+    table.add_column("Dateiendung", style="bold", overflow="fold")
     table.add_column("Kategorie", style="cyan")
 
     for file_extension in analysis_result:
@@ -153,103 +151,90 @@ def create_assignment_table(categories: dict[str, str], analysis_result: dict[st
         if assignment is None:
             assignment = "nicht zugeordnet"
 
-        table.add_row(display_extension, assignment)
+        table.add_row(Text(display_extension), Text(assignment))
 
     return table
 
 
 def create_analysis_table(analysis_result: dict[str, AnalysisEntry], percentages: dict[str, float]) -> Table:
     """Build and return a table containing the analysis results."""
-    table = Table(box=box.SQUARE, title="Analyseergebnis")
-    table.add_column("Dateiendung", style="purple", no_wrap=True)
-    table.add_column("Anzahl", justify="right", style="magenta")
-    table.add_column("Anteil", justify="right", style="green")
+    table = report("Analyseergebnis", f"{sum(item['anzahl'] for item in analysis_result.values())} Dateien")
+    table.add_column("Dateiendung", style="bold", overflow="fold")
+    table.add_column("Anzahl", justify="right", style="bold")
+    table.add_column("Anteil", justify="right", style="cyan")
     table.add_column("Kategorie", style="cyan")
 
-    for file_extension, data in analysis_result.items():
+    for file_extension, data in sorted(analysis_result.items(), key=lambda item: (-item[1]["anzahl"], item[0])):
         display_extension = file_extension or "ohne Endung"
         category = data["kategorie"]
 
         if category is None:
             category = "nicht zugeordnet"
 
-        table.add_row(display_extension, str(data["anzahl"]), f"{percentages[file_extension]:.2f}%", category)
+        table.add_row(Text(display_extension), str(data["anzahl"]), f"{percentages[file_extension]:.1f} %", Text(category))
 
     return table
 
-def resolve_sorting_conflicts(sorting_result: dict[str, FilePaths], selected_folder: Path, organize_service: OrganizeService) -> None:
-    """Ask how to handle each conflict and update its result entry."""
-    for entry in sorting_result.values():
-        if entry["status"] != "conflict":
-            continue
-
-        source = entry["source"]
-        destination = entry["destination"]
-
-        console.print(f"Quelle: {source.relative_to(selected_folder)}")
-        console.print(f"Belegtes Ziel: {destination.relative_to(selected_folder)}")
-        answer = Prompt.ask(
-            "Beide Dateien behalten und die eingehende Datei umbenennen?",
-            choices=["ja", "nein"],
-            case_sensitive=False,
-        )
-
-        if answer.lower() == "nein":
-            entry["status"] = "skipped"
-            continue
-
-        try:
-            actual_destination = organize_service.move_with_unique_name(source, destination)
-        except OSError as error:
-            entry["status"] = "failed"
-            console.print(f"Datei konnte nicht verschoben werden: {error}")
-            continue
-
-        entry["destination"] = actual_destination
-        entry["status"] = "moved"
-
-
-def create_sorting_table(sorting_result: dict[str, FilePaths], selected_folder: Path) -> Table:
-    """Build and return a table containing the sorting results."""
-    table = Table(box=box.SQUARE, title="Sortierergebnis")
-    table.add_column("Dateiname", style="purple", no_wrap=True)
-    table.add_column("Quelldatei", justify="right", style="magenta")
-    table.add_column("Zieldatei", justify="right", style="green")
-    table.add_column("Status", justify="left", style="cyan")
-    status_labels = {"moved": "Verschoben", "skipped": "Übersprungen", "conflict": "Namenskonflikt", "failed": "Fehlgeschlagen"}
-
-    for filename, entry in sorting_result.items():
-        source = entry["source"].relative_to(selected_folder)
-        destination = (str(entry["destination"].relative_to(selected_folder))
-            if entry["status"] == "moved"
-            else ""
-        )
-        table.add_row(filename, str(source), destination, status_labels[entry["status"]])
-
-    return table
+def choose_conflict(source: Path, destination: Path) -> str:
+    console.print(paths_panel("Namenskonflikt", [("Quelle", source), ("Belegtes Ziel", destination)], "yellow"))
+    answer = Prompt.ask("Beide Dateien behalten und die eingehende Datei umbenennen?",
+                        choices=["ja", "nein"], case_sensitive=False)
+    return "rename" if answer.lower() == "ja" else "skip"
 
 
 @app.command("sortiere")
-def sort_files(configuration_path: Annotated[Path, typer.Option("--config")] = Path("config.json")) -> None:
-    """Sort files using the configured category assignments."""
-    console.print("🔎 [bold underline green]Sortiere[/bold underline green]")
-    console.print("[cyan]Welchen Ordner willst du sortieren lassen?[/cyan]")
+def sort_files(configuration_path: Annotated[Path, typer.Option("--config")] = Path("config.json"), dry_run: bool = typer.Option(False, "--dry-run")) -> None:
+    """Sortierplan anzeigen und bestätigte Verschiebungen ausführen."""
     configuration, selected_folder = load_configuration_and_select_folder(configuration_path)
-    console.print()    
-    console.print("[italic magenta]Dateien werden anhand der gespeicherten Kategorien verschoben![/italic magenta]")
-    console.print("[italic magenta]Nur Dateien im direkt ausgewählten Ordner werden sortiert[/italic magenta]")
-    console.print() 
-    confirm_sorting = Confirm.ask("[bold underline yellow]Bitte bestätigen Sie den Vorgang.[/bold underline yellow]")
+    options = Options.load(configuration.get("optionen", {}))
+    organize_service = OrganizeService()
+    try:
+        with file_progress("Vorschau") as progress:
+            plan = organize_service.preview_sorting(selected_folder, configuration["kategorien"], options,
+                                                   protected_paths=(configuration_path,), progress=progress)
+    except (ValueError, OSError) as exc:
+        console.print(Text(str(exc), style="danger"))
+        raise typer.Exit(1) from exc
+    if not plan:
+        console.print("Keine Dateien zum Sortieren gefunden.")
+        return
+    console.print(sorting_table(plan, selected_folder, preview=True))
+    if dry_run:
+        log.info("Dry-Run abgeschlossen: %s", selected_folder)
+        console.print("[muted]Dry-Run abgeschlossen. Es wurden keine Dateien verschoben.[/muted]")
+        return
+    confirm_sorting = Confirm.ask("Diesen Sortierplan ausführen?", default=False)
     if not confirm_sorting:
+        log.info("Sortierung vor Ausführung abgebrochen: %s", selected_folder)
         console.print("[cyan]Sortiervorgang abgebrochen.[/cyan]")
         return    
-    organize_service = OrganizeService()
-    organize_result = organize_service.organize_files(selected_folder, configuration["kategorien"])   
-    resolve_sorting_conflicts(organize_result, selected_folder, organize_service)
-    console.print(create_sorting_table(organize_result, selected_folder))
+    with file_progress("Sortierung") as progress:
+        organize_result = organize_service.organize_files(selected_folder, plan, conflict=options.conflict,
+                                                          decide=choose_conflict, progress=progress)
+    for entry in organize_result.values():
+        if "error" in entry:
+            console.print(Text(f"{entry['source']}: {entry['error']}", style="danger"))
+    console.print()
+    console.print(sorting_table(organize_result, selected_folder))
     console.print("[cyan]Sortierdurchlauf beendet.[/cyan]")
 
    
+
+@app.command("rueckgaengig")
+def undo(configuration_path: Annotated[Path, typer.Option("--config")] = Path("config.json")):
+    """Letzte Verschiebungen für einen Ordner sicher zurücknehmen."""
+    _, folder = load_configuration_and_select_folder(configuration_path)
+    if Confirm.ask("Letzten Sortierlauf rückgängig machen?", default=False):
+        with file_progress("Rücknahme") as progress:
+            result = OrganizeService().undo(folder, progress=progress)
+        if not result:
+            console.print("Kein rücknehmbarer Lauf für diesen Ordner.")
+            return
+        console.print(sorting_table(result, folder, undo=True))
+        for entry in result.values():
+            if "error" in entry:
+                console.print(Text(entry["error"], style="danger"))
+
 
 def load_cli_configuration(configuration_path: Path) -> ConfigurationData:
     """Load configuration and report CLI errors."""
@@ -258,20 +243,20 @@ def load_cli_configuration(configuration_path: Path) -> ConfigurationData:
         return config_service.load_configuration(configuration_path)
     except FileNotFoundError as error:
         console.print()
-        console.print(f"[red italic]{error}[/red italic]")
-        console.print(f"[red italic]{configuration_path} existiert nicht![/red italic]", soft_wrap=True)
+        console.print(Text(str(error), style="danger"))
+        console.print(Text(f"{configuration_path} existiert nicht!", style="danger"), soft_wrap=True)
         raise typer.Exit(code=1)
     except json.JSONDecodeError as error:
-        console.print(f"[red italic]{error}[/red italic]")
-        console.print(f"[red italic]Ungültiges JSON: {configuration_path}[/red italic]", soft_wrap=True)
+        console.print(Text(str(error), style="danger"))
+        console.print(Text(f"Ungültiges JSON: {configuration_path}", style="danger"), soft_wrap=True)
         raise typer.Exit(code=1)
     except ValueError as error:
-        console.print(f"[red italic]{error}[/red italic]")
-        console.print(f"[red italic]Ungültige Konfiguration: {configuration_path}[/red italic]", soft_wrap=True)
+        console.print(Text(str(error), style="danger"))
+        console.print(Text(f"Ungültige Konfiguration: {configuration_path}", style="danger"), soft_wrap=True)
         raise typer.Exit(code=1)
     except PermissionError as error:
-        console.print(f"[red italic]{error}[/red italic]")
-        console.print(f"[red italic]Zugriff verweigert: {configuration_path}[/red italic]", soft_wrap=True)
+        console.print(Text(str(error), style="danger"))
+        console.print(Text(f"Zugriff verweigert: {configuration_path}", style="danger"), soft_wrap=True)
         raise typer.Exit(code=1)
 
 def run_cli() -> None:
@@ -280,5 +265,3 @@ def run_cli() -> None:
 
 if __name__ == "__main__":
     run_cli()
-
-    

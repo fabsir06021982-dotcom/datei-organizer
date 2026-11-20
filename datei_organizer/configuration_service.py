@@ -1,8 +1,16 @@
 from pathlib import Path, PureWindowsPath, PurePosixPath
 import json
+from .log_service import log
+import os
+import tempfile
+from .scanning import Options
 from typing import TypedDict
 
-class ConfigurationData(TypedDict):
+class _OptionalConfiguration(TypedDict, total=False):
+    optionen: dict
+
+
+class ConfigurationData(_OptionalConfiguration):
     ordner: str
     kategorien: dict[str, str]
 
@@ -29,6 +37,8 @@ class ConfigurationService:
                 if not configuration["ordner"].strip():
                     raise ValueError("In der JSON fehlen Werte")
 
+                Options.load(configuration.get("optionen", {}))
+                log.debug("Konfiguration geladen: %s", configuration_path)
                 return configuration
         except FileNotFoundError as error:
             raise FileNotFoundError("Config Datei nicht gefunden") from error
@@ -39,7 +49,15 @@ class ConfigurationService:
         try:
             serialized_configuration = json.dumps(configuration, indent=4, ensure_ascii=False)
             configuration_path.parent.mkdir(parents=True, exist_ok=True)
-            configuration_path.write_text(serialized_configuration, encoding="utf-8")
+            with tempfile.NamedTemporaryFile(mode="w", encoding="utf-8", dir=configuration_path.parent,
+                                             delete=False) as temp:
+                temp_path = Path(temp.name)
+            try:
+                temp_path.write_text(serialized_configuration, encoding="utf-8")
+                os.replace(temp_path, configuration_path)
+                log.info("Konfiguration gespeichert: %s", configuration_path)
+            finally:
+                temp_path.unlink(missing_ok=True)
         except OSError as error:
             raise OSError(f"{configuration_path} kann nicht erstellt werden: {error}") from error
         except TypeError as error:

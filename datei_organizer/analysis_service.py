@@ -1,4 +1,5 @@
-from pathlib import Path
+from .log_service import log
+from .scanning import Options, scan
 from typing import TypedDict
 
 class AnalysisEntry(TypedDict):
@@ -11,19 +12,29 @@ class AnalysisService:
     """
     Calculates the analysis result and returns it
     """
-    def analyze_files(self, folder_path: Path, categories: dict[str, str]) -> dict[str, AnalysisEntry]:
-        """Count files by extension and look up their configured categories."""
-        analysis_result: dict[str, AnalysisEntry] = {}
-        folder = Path(folder_path)
-        for path in folder.glob("*"):
-            if path.is_file():
-                file_extension = path.suffix.lower()
-                if file_extension in analysis_result:
-                    analysis_result[file_extension]["anzahl"] += 1
-                else:
-                    analysis_result[file_extension] = {"anzahl" : 1, "kategorie" : categories.get(file_extension)}
-        return analysis_result
-
+    def analyze_files(self, folder_path, categories, options=None, *, protected_paths=(), cancelled=lambda: False,
+                      progress=lambda *args: None, on_error=lambda *args: None):
+        """Count matching files, reporting discovery and processing separately."""
+        files = []
+        errors = 0
+        def error(path, exc):
+            nonlocal errors
+            errors += 1
+            on_error(path, exc)
+            progress(len(files), 0, errors)
+        for path in scan(folder_path, categories, options or Options(), cancelled, error, protected_paths):
+            files.append(path)
+            progress(len(files), 0, errors)
+        result = {}
+        for index, path in enumerate(files, 1):
+            if cancelled():
+                break
+            extension = path.suffix.lower()
+            entry = result.setdefault(extension, {"anzahl": 0, "kategorie": categories.get(extension)})
+            entry["anzahl"] += 1
+            progress(index, len(files), errors)
+        log.info("Analyse in %s: %d Dateien, %d Fehler, Abbruch=%s", folder_path, len(files), errors, cancelled())
+        return result
 
     def calculate_percentages(self, analysis_result: dict[str, AnalysisEntry]) -> dict[str, float]:
         """Return each extension group's percentage of the analyzed files."""
