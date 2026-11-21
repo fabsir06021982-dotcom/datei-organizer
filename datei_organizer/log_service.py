@@ -5,7 +5,6 @@ from logging.handlers import RotatingFileHandler
 log = logging.getLogger("datei_organizer")
 log.addHandler(logging.NullHandler())
 
-
 def configure_logging(enabled: bool) -> None:
     for handler in list(log.handlers):
         if isinstance(handler, RotatingFileHandler):

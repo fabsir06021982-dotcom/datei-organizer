@@ -101,6 +101,7 @@ def test_move_failure(source_folder, caplog):
     assert "Simulierter Fehler" in caplog.text
     assert file_path.exists()
 
+
 def test_create_folder_failure(source_folder, caplog):
     file_path = source_folder / "test.txt"
     file_path.write_text("INHALT", encoding="utf-8")

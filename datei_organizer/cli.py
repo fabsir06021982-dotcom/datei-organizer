@@ -17,7 +17,6 @@ from .log_service import configure_logging, log
 app = typer.Typer(help="Dateien analysieren, Sortierpläne prüfen und Verschiebungen zurücknehmen.",
                   add_completion=False, pretty_exceptions_show_locals=False)
 
-
 @app.callback(invoke_without_command=True)
 def main(ctx: typer.Context) -> None:
     sections = {"analyse": "Analyse", "sortiere": "Sortierung", "rueckgaengig": "Rücknahme"}

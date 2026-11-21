@@ -10,6 +10,7 @@ from datei_organizer.configuration_service import ConfigurationService
 
 runner = CliRunner()
 
+
 @pytest.fixture
 def configured_workspace(tmp_path, monkeypatch) -> Path:
     working_directory = tmp_path / "arbeitsverzeichnis"

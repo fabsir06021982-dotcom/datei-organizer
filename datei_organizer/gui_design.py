@@ -9,7 +9,6 @@ ASSETS = Path(__file__).with_name("assets")
 NAV = {"Start": "start", "Analyse": "analyse", "Zuordnungen": "zuordnungen",
        "Ergebnisse": "ergebnisse", "Einstellungen": "einstellungen"}
 
-
 class Design:
     def __init__(self, root, style):
         self.root, self.style = root, style

@@ -14,6 +14,7 @@ from .log_service import configure_logging
 from .organize_service import OrganizeService, summary
 from .scanning import Options
 
+
 LABELS = {"planned": "Geplant", "conflict": "Namenskonflikt", "moved": "Verschoben",
           "skipped": "Übersprungen", "failed": "Fehlgeschlagen", "cancelled": "Abgebrochen"}
 SETTINGS = {"recursive": "Unterordner durchsuchen", "max_depth": "Maximale Tiefe (leer: unbegrenzt)",

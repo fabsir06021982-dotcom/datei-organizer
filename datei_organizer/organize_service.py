@@ -9,7 +9,6 @@ from .scanning import Options, scan
 from .paths import safe_path, history_dir
 from .journal import Journal
 
-
 class FilePaths(TypedDict):
     source: Path
     destination: Path

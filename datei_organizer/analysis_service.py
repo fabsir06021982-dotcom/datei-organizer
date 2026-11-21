@@ -7,7 +7,6 @@ class AnalysisEntry(TypedDict):
     kategorie: str | None
 
 
-
 class AnalysisService:
     """
     Calculates the analysis result and returns it

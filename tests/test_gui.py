@@ -54,7 +54,6 @@ def wait_for_job(gui):
         assert time.monotonic() < deadline
         time.sleep(0.005)
 
-
 def test_gui_skips_conflicting_file_and_shows_empty_destination(configured_workspace, root):
     test_folder = configured_workspace / "testdateien"
     dest_path = test_folder / "texte"

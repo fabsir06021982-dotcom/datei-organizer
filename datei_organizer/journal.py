@@ -6,7 +6,6 @@ from contextlib import closing
 
 from .paths import history_dir, safe_path
 
-
 def fingerprint(path):
     before = path.stat()
     digest = hashlib.sha256()

@@ -14,7 +14,6 @@ class ConfigurationData(_OptionalConfiguration):
     ordner: str
     kategorien: dict[str, str]
 
-
 class ConfigurationService:
     """
     Handles loading, saving, and validation
