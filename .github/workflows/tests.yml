@@ -8,6 +8,7 @@ permissions:
 jobs:
   test:
     runs-on: windows-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -15,5 +16,6 @@ jobs:
           python-version: '3.13'
       - run: python -m pip install "poetry>=2.2,<3"
       - run: poetry install --no-interaction
-      - run: poetry run python -m pytest tests -q
+      - run: poetry run python -m pip install pytest-timeout
+      - run: poetry run python -m pytest tests -v --timeout=45
       - run: poetry build
