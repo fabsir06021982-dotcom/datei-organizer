@@ -1,3 +1,4 @@
+import gc
 import time
 import pytest
 import tkinter as tk
@@ -39,6 +40,8 @@ def tk_session():
 
 @pytest.fixture
 def root(tk_session):
+    # Finalize widgets from previous tests on the thread that owns Tk.
+    gc.collect()
     window = tk.Toplevel(tk_session)
     yield window
     window.destroy()
@@ -155,7 +158,11 @@ def test_gui_analysis_can_be_cancelled_while_worker_runs(configured_workspace, r
     gui = OrganizerGUI(root, {"ordner": str(configured_workspace), "kategorien": {}})
     gui.selected_folder = configured_workspace
     gui.analyze_folder()
-    assert started.wait(1)
+    deadline = time.monotonic() + 10
+    while not started.is_set():
+        gui.root.update()
+        assert time.monotonic() < deadline
+        time.sleep(0.005)
     gui.abort.invoke()
     wait_for_job(gui)
     assert "Abgebrochen" in gui.status.get()
